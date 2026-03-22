@@ -1,0 +1,2638 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>B站视频ASR文本提取工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 900px;
+            width: 100%;
+            padding: 40px;
+            animation: fadeIn 0.5s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle-text {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .input-section {
+            margin-bottom: 20px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        input[type="text"], textarea {
+            flex: 1;
+            padding: 15px 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s;
+            font-family: inherit;
+        }
+
+        input[type="text"]:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 60px;
+            font-size: 13px;
+        }
+
+        button {
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .cookie-section {
+            background: linear-gradient(135deg, #fff8e1 0%, #ffe0b2 100%);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+            border: 2px solid #ffb74d;
+            box-shadow: 0 4px 15px rgba(255, 152, 0, 0.15);
+        }
+
+        .cookie-section h4 {
+            color: #e65100;
+            margin-bottom: 12px;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .cookie-section code {
+            background: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 13px;
+            color: #d63384;
+            font-weight: 600;
+        }
+
+        .toggle-cookie {
+            background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+            color: white;
+            padding: 10px 20px;
+            font-size: 14px;
+            cursor: pointer;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            margin-top: 10px;
+            box-shadow: 0 3px 10px rgba(255, 152, 0, 0.3);
+            transition: all 0.3s;
+        }
+
+        .toggle-cookie:hover {
+            background: linear-gradient(135deg, #fb8c00 0%, #ef6c00 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 152, 0, 0.4);
+        }
+
+        .cookie-input {
+            display: none;
+            margin-top: 20px;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .cookie-input.show {
+            display: block;
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .cookie-field {
+            margin-bottom: 15px;
+        }
+
+        .cookie-field label {
+            display: block;
+            font-weight: 600;
+            color: #444;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .cookie-field label span {
+            color: #ff5722;
+            margin-left: 4px;
+        }
+
+        .cookie-field input[type="text"] {
+            width: 100%;
+            padding: 12px 15px;
+            font-size: 13px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            transition: all 0.3s;
+            font-family: 'Courier New', monospace;
+        }
+
+        .cookie-field input[type="text"]:focus {
+            border-color: #ff9800;
+            box-shadow: 0 0 0 3px rgba(255, 152, 0, 0.1);
+        }
+
+        .cookie-help {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 3px solid #2196f3;
+            margin-top: 15px;
+        }
+
+        .cookie-help-title {
+            font-weight: 600;
+            color: #1565c0;
+            margin-bottom: 10px;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .cookie-help ol {
+            margin-left: 20px;
+            color: #1976d2;
+            font-size: 13px;
+            line-height: 1.8;
+        }
+
+        .cookie-help code {
+            background: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 12px;
+            color: #d63384;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: #667eea;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .result {
+            display: none;
+            margin-top: 30px;
+            animation: slideIn 0.5s;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .result.show {
+            display: block;
+        }
+
+        .video-info {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border-left: 4px solid #667eea;
+        }
+
+        .video-info h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+
+        .info-item {
+            margin-bottom: 10px;
+            color: #555;
+            line-height: 1.6;
+        }
+
+        .info-label {
+            font-weight: 600;
+            color: #667eea;
+            display: inline-block;
+            min-width: 80px;
+        }
+
+        .subtitle-box {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        .subtitle-box h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        #subtitleText {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+            max-height: 400px;
+            overflow-y: auto;
+            line-height: 1.8;
+            color: #333;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-size: 15px;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        .copy-btn {
+            padding: 8px 16px;
+            font-size: 14px;
+            background: #28a745;
+        }
+
+        .download-btn {
+            padding: 8px 16px;
+            font-size: 14px;
+            background: #17a2b8;
+        }
+
+        .error {
+            background: #fee;
+            color: #c33;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            border-left: 4px solid #c33;
+            display: none;
+        }
+
+        .error.show {
+            display: block;
+        }
+
+        .example {
+            background: linear-gradient(135deg, #e7f3ff 0%, #d4e9ff 100%);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 14px;
+            color: #0066cc;
+            border-left: 4px solid #0066cc;
+        }
+
+        .example strong {
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .example code {
+            background: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            display: block;
+            margin-top: 5px;
+            color: #333;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+
+        .success-toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #28a745;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            display: none;
+            animation: slideInRight 0.3s;
+            z-index: 1000;
+        }
+
+        @keyframes slideInRight {
+            from { transform: translateX(400px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .success-toast.show {
+            display: block;
+        }
+
+        .subtitle-list {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        .subtitle-list h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+
+        .subtitle-item {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 2px solid #e0e0e0;
+            transition: all 0.3s;
+        }
+
+        .subtitle-item:hover {
+            border-color: #667eea;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+        }
+
+        .subtitle-info {
+            flex: 1;
+        }
+
+        .subtitle-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .subtitle-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+
+        .badge-ai {
+            background: #d4edff;
+            color: #0066cc;
+        }
+
+        .badge-manual {
+            background: #d4f4dd;
+            color: #28a745;
+        }
+
+        .badge-recommend {
+            background: #ffd700;
+            color: #856404;
+        }
+
+        .subtitle-meta {
+            font-size: 13px;
+            color: #666;
+        }
+
+        .subtitle-item button {
+            padding: 8px 20px;
+            font-size: 14px;
+            margin-left: 10px;
+        }
+
+        .download-all-btn {
+            width: 100%;
+            margin-top: 15px;
+            background: #17a2b8;
+        }
+
+        .download-all-btn:hover:not(:disabled) {
+            background: #138496;
+        }
+
+        .version-tag {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-left: 10px;
+            vertical-align: middle;
+        }
+
+        /* 截帧对照区域 */
+        .frame-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .frame-section.show {
+            display: block;
+        }
+
+        .frame-section h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .frame-loading {
+            text-align: center;
+            padding: 30px;
+            color: #999;
+            font-size: 14px;
+        }
+
+        .frame-loading .spinner {
+            width: 30px;
+            height: 30px;
+            border-width: 2px;
+            margin-bottom: 8px;
+        }
+
+        .frame-container {
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+            max-height: 800px;
+            overflow-y: auto;
+            overflow-x: auto;
+            padding: 0;
+        }
+
+        .frame-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        .frame-table thead th {
+            position: sticky;
+            top: 0;
+            background: #f8f9fa;
+            padding: 10px 8px;
+            text-align: center;
+            font-size: 13px;
+            color: #667eea;
+            border-bottom: 2px solid #667eea;
+            z-index: 1;
+        }
+
+        .frame-table thead th:first-child {
+            text-align: left;
+        }
+
+        .frame-table tbody tr {
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .frame-table tbody tr.deleted {
+            display: none;
+        }
+
+        .frame-table td {
+            padding: 8px;
+            vertical-align: top;
+        }
+
+        .text-col {
+            width: 180px;
+            min-width: 150px;
+        }
+
+        .text-col .time {
+            font-size: 12px;
+            color: #999;
+            font-family: 'Courier New', monospace;
+        }
+
+        .text-col .content {
+            font-size: 14px;
+            color: #333;
+            line-height: 1.6;
+            margin-top: 4px;
+        }
+
+        .frame-cell {
+            position: relative;
+            text-align: center;
+            min-width: 200px;
+        }
+
+        .frame-cell img {
+            width: 100%;
+            max-width: 400px;
+            height: auto;
+            border-radius: 4px;
+            display: block;
+            margin: 0 auto;
+        }
+
+        .frame-cell .frame-actions {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            display: none;
+            gap: 4px;
+        }
+
+        .frame-cell:hover .frame-actions {
+            display: flex;
+        }
+
+        .frame-actions button, .frame-actions label {
+            cursor: pointer;
+            background: rgba(0,0,0,0.6);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        .frame-actions input[type="file"] {
+            display: none;
+        }
+
+        .frame-placeholder {
+            width: 100%;
+            max-width: 400px;
+            height: 150px;
+            background: #f5f5f5;
+            border: 2px dashed #ddd;
+            border-radius: 4px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #999;
+            font-size: 12px;
+            cursor: pointer;
+            margin: 0 auto;
+            outline: none;
+        }
+
+        .frame-placeholder:focus {
+            border-color: #667eea;
+            background: #f0f0ff;
+        }
+
+        /* 排名徽章 - 放在帧图下方 */
+        .rank-badges {
+            display: flex;
+            justify-content: center;
+            gap: 4px;
+            margin-top: 6px;
+        }
+
+        .rank-badge {
+            width: 24px;
+            height: 24px;
+            line-height: 24px;
+            text-align: center;
+            border-radius: 50%;
+            border: 2px solid #ddd;
+            background: #f5f5f5;
+            color: #999;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .rank-badge:hover {
+            border-color: #667eea;
+            background: #f0f0ff;
+        }
+
+        .rank-badge.active {
+            color: #fff;
+            border-color: transparent;
+        }
+
+        .rank-badge.active[data-rank="1"] { background: #FFD700; }
+        .rank-badge.active[data-rank="2"] { background: #C0C0C0; }
+        .rank-badge.active[data-rank="3"] { background: #CD7F32; }
+
+        /* Best列 */
+        .best-col {
+            text-align: center;
+            vertical-align: middle;
+            min-width: 80px;
+            font-weight: 600;
+            color: #667eea;
+            font-size: 13px;
+        }
+
+        /* 可编辑列头和文案 */
+        .editable-header, .editable-text {
+            cursor: pointer;
+        }
+
+        .editable-header:hover, .editable-text:hover {
+            text-decoration: underline dotted;
+        }
+
+        /* 备注列 */
+        .notes-col {
+            min-width: 120px;
+            vertical-align: top;
+        }
+
+        .note-input {
+            width: 100%;
+            min-height: 60px;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            padding: 4px 6px;
+            font-size: 12px;
+            resize: vertical;
+            font-family: inherit;
+        }
+
+        .note-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .delete-row-btn {
+            background: none;
+            border: none;
+            color: #ccc;
+            font-size: 18px;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 4px;
+            vertical-align: top;
+        }
+
+        .delete-row-btn:hover {
+            color: #ff4444;
+            background: #fff0f0;
+        }
+
+        /* 上传区域 */
+        .upload-section {
+            background: #f0f4ff;
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-top: 15px;
+            display: none;
+            border: 1px solid #d0d8ff;
+        }
+
+        .upload-section.show {
+            display: block;
+        }
+
+        .upload-section h4 {
+            font-size: 15px;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .upload-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .upload-row input[type="file"] {
+            font-size: 13px;
+        }
+
+        .uploaded-list {
+            margin-top: 8px;
+        }
+
+        .uploaded-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: white;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 13px;
+            margin: 4px 4px 0 0;
+            border: 1px solid #ddd;
+        }
+
+        .uploaded-item .remove-file {
+            cursor: pointer;
+            color: #999;
+            font-size: 16px;
+        }
+
+        .uploaded-item .remove-file:hover {
+            color: #ff4444;
+        }
+
+        .start-frame-btn {
+            padding: 10px 20px;
+            font-size: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .start-frame-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .start-frame-btn:hover:not(:disabled) {
+            opacity: 0.9;
+        }
+
+        /* 历史面板 */
+        .history-section { margin-bottom: 15px; }
+        .history-toggle {
+            cursor: pointer; margin: 0; padding: 10px 15px;
+            background: #f8f9fa; border-radius: 8px; font-size: 14px;
+            user-select: none; transition: background 0.2s;
+        }
+        .history-toggle:hover { background: #e9ecef; }
+        .history-panel {
+            max-height: 300px; overflow-y: auto; border: 1px solid #e0e0e0;
+            border-radius: 0 0 8px 8px; background: #fff; transition: max-height 0.3s;
+        }
+        .history-panel.collapsed { max-height: 0; overflow: hidden; border: none; }
+        .history-item {
+            position: relative; padding: 10px 35px 10px 12px;
+            border-bottom: 1px solid #f0f0f0; cursor: pointer; transition: background 0.15s;
+        }
+        .history-item:hover { background: #f5f8ff; }
+        .history-item.active { background: #e8f0fe; border-left: 3px solid #4285f4; }
+        .history-title {
+            font-size: 13px; font-weight: 500; white-space: nowrap;
+            overflow: hidden; text-overflow: ellipsis; margin-bottom: 3px;
+        }
+        .history-meta {
+            font-size: 11px; color: #999; display: flex; gap: 8px;
+        }
+        .history-delete {
+            position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+            background: none; border: none; color: #ccc; font-size: 18px;
+            cursor: pointer; padding: 2px 6px; line-height: 1;
+        }
+        .history-delete:hover { color: #f44336; }
+        .history-clear-btn {
+            width: 100%; padding: 8px; background: none; border: none;
+            border-top: 1px solid #f0f0f0; color: #999; font-size: 12px;
+            cursor: pointer;
+        }
+        .history-clear-btn:hover { color: #f44336; background: #fff5f5; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>B站视频ASR文本提取工具 <span class="version-tag">v4.0</span></h1>
+        <p class="subtitle-text">快速提取B站视频的字幕和ASR文本 · 多视频截帧对照 · 排名打标</p>
+
+        <div class="cookie-section">
+            <h4>🔐 需要B站登录Cookie才能获取字幕</h4>
+
+            <button class="toggle-cookie" onclick="toggleCookie()">📝 点击展开Cookie设置</button>
+
+            <div class="cookie-input" id="cookieInput">
+                <div class="cookie-field">
+                    <label>🎫 SESSDATA<span>*</span></label>
+                    <input type="text" id="sessdata" placeholder="例如：15faff37%2C1784958831%2C0431%2A11CjBUf..." />
+                </div>
+
+                <div class="cookie-field">
+                    <label>🔑 bili_jct<span>*</span></label>
+                    <input type="text" id="bili_jct" placeholder="例如：a1b2c3d4e5f6..." />
+                </div>
+
+                <div class="cookie-field">
+                    <label>👤 DedeUserID<span>*</span></label>
+                    <input type="text" id="dedeuserid" placeholder="例如：2136378398" />
+                </div>
+
+                <div class="cookie-help">
+                    <div class="cookie-help-title">💡 如何获取这三个Cookie值？</div>
+                    <ol>
+                        <li>在浏览器中打开 <strong>B站首页</strong> 并 <strong>登录账号</strong></li>
+                        <li>按键盘 <code>F12</code> 打开开发者工具</li>
+                        <li>点击顶部的 <code>Application</code> 标签（如果看不到，点击 <code>>></code> 展开）</li>
+                        <li>左侧展开 <code>Cookies</code> → 点击 <code>https://www.bilibili.com</code></li>
+                        <li>在右侧列表中找到上面三个Cookie名称，复制它们的 <strong>Value</strong> 值</li>
+                        <li>分别粘贴到上面对应的输入框中</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+
+        <div class="input-section">
+            <div class="input-group">
+                <input
+                    type="text"
+                    id="videoUrl"
+                    placeholder="粘贴B站视频链接，例如：https://www.bilibili.com/video/BV1XkAne1Ew1/"
+                    autofocus
+                >
+                <button id="extractBtn" onclick="extractASR()">提取文本</button>
+            </div>
+
+            <div class="example">
+                <strong>✨ 支持的链接格式：</strong>
+                <code>https://www.bilibili.com/video/BV1XkAne1Ew1/</code>
+                <code>BV1XkAne1Ew1</code>
+            </div>
+        </div>
+
+        <div class="history-section">
+            <h4 class="history-toggle" onclick="document.getElementById('historyPanel').classList.toggle('collapsed')">📋 提取历史 <span style="font-size:12px;color:#999;">（点击展开/收起）</span></h4>
+            <div id="historyPanel" class="history-panel collapsed">
+                <p style="color:#999;font-size:12px;text-align:center;padding:8px;">暂无提取历史</p>
+            </div>
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>正在提取字幕，请稍候...</p>
+        </div>
+
+        <div class="error" id="error"></div>
+
+        <div class="result" id="result">
+            <div class="video-info">
+                <h3>📹 视频信息</h3>
+                <div class="info-item">
+                    <span class="info-label">标题：</span>
+                    <span id="videoTitle"></span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">UP主：</span>
+                    <span id="videoAuthor"></span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">BV号：</span>
+                    <span id="videoBvid"></span>
+                </div>
+            </div>
+
+            <div class="subtitle-list" id="subtitleList"></div>
+
+            <div class="subtitle-box">
+                <h3>
+                    <span>📝 字幕文本 <span id="subtitleLang"></span></span>
+                    <div class="btn-group">
+                        <button class="copy-btn" onclick="copyText()">📋 复制</button>
+                        <button class="download-btn" onclick="downloadText()">💾 下载</button>
+                    </div>
+                </h3>
+                <div id="subtitleText"></div>
+            </div>
+
+            <div class="upload-section" id="uploadSection">
+                <h4>📁 上传对比视频（可选，最多2个）</h4>
+                <div class="upload-row">
+                    <input type="file" id="videoFiles" accept="video/*" multiple onchange="handleVideoUpload(this.files)">
+                </div>
+                <div class="uploaded-list" id="uploadedList"></div>
+                <button class="start-frame-btn" id="startFrameBtn" onclick="startFrameExtraction()" disabled>🎬 开始截帧对比</button>
+            </div>
+
+            <div class="frame-section" id="frameSection">
+                <h3>
+                    <span>🎬 截帧对照 <span id="frameLang"></span></span>
+                    <div class="btn-group">
+                        <button class="export-btn" onclick="exportHtmlDocument()" id="exportBtn">📄 导出HTML文档</button>
+                    </div>
+                </h3>
+                <div id="frameLoading" class="frame-loading" style="display: none;">
+                    <div class="spinner"></div>
+                    <p>正在截取视频帧...</p>
+                </div>
+                <div class="frame-container" id="frameContainer"></div>
+
+                <div style="margin-top:30px;padding:20px;background:#f8f9fa;border-radius:8px;border-left:4px solid #667eea;">
+                    <h4 style="margin-bottom:10px;color:#333;">📝 截帧总结</h4>
+                    <p style="font-size:13px;color:#666;margin-bottom:8px;">对本次截帧对照和两个视频的对比进行总结说明</p>
+                    <textarea id="summaryText" placeholder="例如：B站视频的画质更清晰，细节表现更好；上传视频1在色彩饱和度上略逊一筹..." style="width:100%;min-height:120px;padding:12px;border:1px solid #e0e0e0;border-radius:6px;font-size:14px;font-family:inherit;resize:vertical;" oninput="saveSummaryText()"></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="success-toast" id="toast">操作成功！</div>
+
+    <script>
+        // 全局变量
+        window.currentVideoData = null;
+        window.subtitleCache = {};
+        window.pendingTimers = [];
+        window.requestGeneration = 0;
+        window.uploadedVideos = [];     // [{filePath, fileName}, ...]
+        window.displayedSubtitles = []; // 去重后的字幕列表（带deleted标记）
+        window.videoColumnNames = {};   // {videoKey: '自定义名称'}
+        window.rowNotes = {};           // {rowIndex: '备注文本'}
+        window.rowRankings = {};        // {rowIndex: {videoKey: rankNumber}}
+
+        // 持久化：保存标注数据到 localStorage
+        function saveAnnotations() {
+            const bvid = window.currentVideoData && window.currentVideoData.bvid;
+            if (!bvid) return;
+            const data = {
+                rowRankings: window.rowRankings,
+                rowNotes: window.rowNotes,
+                videoColumnNames: window.videoColumnNames,
+                // 保存字幕编辑（content可能被用户修改）
+                subtitleEdits: {},
+                deletedRows: {}
+            };
+            if (window.displayedSubtitles) {
+                window.displayedSubtitles.forEach((item, idx) => {
+                    if (item.deleted) data.deletedRows[idx] = true;
+                    if (item._edited) data.subtitleEdits[idx] = item.content;
+                });
+            }
+            try {
+                localStorage.setItem('annotations_' + bvid, JSON.stringify(data));
+                // 同时保存工作区数据
+                saveWorkspaceData();
+            } catch (e) { console.warn('保存标注失败:', e); }
+        }
+
+        // 持久化：加载标注数据
+        function loadAnnotations(bvid) {
+            try {
+                const raw = localStorage.getItem('annotations_' + bvid);
+                if (!raw) return null;
+                return JSON.parse(raw);
+            } catch (e) { return null; }
+        }
+
+        // 持久化：恢复标注到当前数据
+        function restoreAnnotations() {
+            const bvid = window.currentVideoData && window.currentVideoData.bvid;
+            if (!bvid) return;
+            const saved = loadAnnotations(bvid);
+            if (!saved) return;
+            console.log('📂 恢复标注数据:', bvid);
+            window.rowRankings = saved.rowRankings || {};
+            window.rowNotes = saved.rowNotes || {};
+            window.videoColumnNames = saved.videoColumnNames || {};
+            // 恢复字幕编辑和删除状态
+            if (window.displayedSubtitles && saved.subtitleEdits) {
+                Object.entries(saved.subtitleEdits).forEach(([idx, content]) => {
+                    const i = parseInt(idx);
+                    if (window.displayedSubtitles[i]) {
+                        window.displayedSubtitles[i].content = content;
+                        window.displayedSubtitles[i]._edited = true;
+                    }
+                });
+            }
+            if (window.displayedSubtitles && saved.deletedRows) {
+                Object.keys(saved.deletedRows).forEach(idx => {
+                    const i = parseInt(idx);
+                    if (window.displayedSubtitles[i]) {
+                        window.displayedSubtitles[i].deleted = true;
+                    }
+                });
+            }
+        }
+
+        // ========== IndexedDB 持久化 ==========
+        let workspaceDB = null;
+
+        // 初始化 IndexedDB
+        function initIndexedDB() {
+            return new Promise((resolve) => {
+                const request = indexedDB.open('FrameWorkspace', 1);
+                request.onerror = () => {
+                    console.warn('IndexedDB 初始化失败，降级使用 localStorage');
+                    resolve(null);
+                };
+                request.onsuccess = (e) => {
+                    workspaceDB = e.target.result;
+                    // 🔥 自动迁移旧的 localStorage 数据到 IndexedDB
+                    migrateFromLocalStorage();
+                    resolve(workspaceDB);
+                };
+                request.onupgradeneeded = (e) => {
+                    const db = e.target.result;
+                    if (!db.objectStoreNames.contains('workspaces')) {
+                        db.createObjectStore('workspaces', { keyPath: 'bvid' });
+                    }
+                };
+            });
+        }
+
+        // 从 localStorage 迁移数据到 IndexedDB
+        function migrateFromLocalStorage() {
+            if (!workspaceDB) return;
+
+            try {
+                // 查找所有 localStorage 中的 workspace_* 键
+                const keysToMigrate = [];
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key.startsWith('workspace_')) {
+                        keysToMigrate.push(key);
+                    }
+                }
+
+                if (keysToMigrate.length === 0) return;
+
+                console.log(`🔄 发现 ${keysToMigrate.length} 条旧数据，正在迁移到 IndexedDB...`);
+
+                const transaction = workspaceDB.transaction(['workspaces'], 'readwrite');
+                const store = transaction.objectStore('workspaces');
+
+                keysToMigrate.forEach(key => {
+                    try {
+                        const bvid = key.replace('workspace_', '');
+                        const dataStr = localStorage.getItem(key);
+                        const data = JSON.parse(dataStr);
+                        data.bvid = bvid;  // 确保 bvid 字段存在
+                        store.put(data);
+                    } catch (e) {
+                        console.warn(`迁移 ${key} 失败:`, e);
+                    }
+                });
+
+                transaction.oncomplete = () => {
+                    console.log('✅ 数据迁移完成！');
+                    // 迁移完成后可以选择删除 localStorage 中的旧数据（可选）
+                    // keysToMigrate.forEach(key => localStorage.removeItem(key));
+                };
+            } catch (e) {
+                console.warn('迁移过程出错:', e);
+            }
+        }
+
+        // 保存截帧总结文本
+        function saveSummaryText() {
+            const bvid = window.currentVideoData && window.currentVideoData.bvid;
+            if (!bvid) return;
+            const summaryText = document.getElementById('summaryText').value;
+            try {
+                localStorage.setItem('summary_' + bvid, summaryText);
+            } catch (e) { console.warn('保存总结失败:', e); }
+        }
+
+        // 加载截帧总结文本
+        function loadSummaryText(bvid) {
+            if (!bvid) return '';
+            try {
+                return localStorage.getItem('summary_' + bvid) || '';
+            } catch (e) { return ''; }
+        }
+
+        // 恢复截帧总结文本
+        function restoreSummaryText() {
+            const bvid = window.currentVideoData && window.currentVideoData.bvid;
+            if (!bvid) return;
+            const summaryText = loadSummaryText(bvid);
+            const summaryEl = document.getElementById('summaryText');
+            if (summaryEl) {
+                summaryEl.value = summaryText;
+            }
+        }
+
+        // 保存当前工作区数据到 IndexedDB（包括完整的图片 base64）
+        function saveWorkspaceData() {
+            const bvid = window.currentVideoData && window.currentVideoData.bvid;
+            if (!bvid || !workspaceDB) return;
+
+            try {
+                const data = {
+                    bvid: bvid,
+                    uploadedVideos: window.uploadedVideos || [],
+                    videoshotData: window.videoshotData || null,  // 🔥 完整保存图片数据
+                    displayedSubtitles: window.displayedSubtitles || [],
+                    rowRankings: window.rowRankings || {},
+                    rowNotes: window.rowNotes || {},
+                    videoColumnNames: window.videoColumnNames || {},
+                    summary: document.getElementById('summaryText').value,
+                    timestamp: Date.now()
+                };
+
+                const transaction = workspaceDB.transaction(['workspaces'], 'readwrite');
+                const store = transaction.objectStore('workspaces');
+                const request = store.put(data);
+
+                request.onerror = () => console.warn('IndexedDB 保存失败');
+                request.onsuccess = () => {
+                    localStorage.setItem('lastWorkspaceBvid', bvid);
+                    console.log('💾 工作区已保存到 IndexedDB');
+                };
+            } catch (e) {
+                console.warn('保存工作区失败:', e);
+            }
+        }
+
+        // 从 IndexedDB 加载工作区数据
+        function loadWorkspaceData(bvid) {
+            return new Promise((resolve) => {
+                if (!workspaceDB) {
+                    resolve(null);
+                    return;
+                }
+
+                try {
+                    const transaction = workspaceDB.transaction(['workspaces'], 'readonly');
+                    const store = transaction.objectStore('workspaces');
+                    const request = store.get(bvid);
+
+                    request.onerror = () => resolve(null);
+                    request.onsuccess = (e) => {
+                        const data = e.target.result;
+                        console.log('📂 从 IndexedDB 加载数据:', bvid, data ? '成功' : '无数据');
+                        resolve(data || null);
+                    };
+                } catch (e) {
+                    console.warn('加载工作区失败:', e);
+                    resolve(null);
+                }
+            });
+        }
+
+        // ========== 提取历史 ==========
+        function saveExtractionHistory(videoData, subtitleResult) {
+            try {
+                const history = JSON.parse(localStorage.getItem('extraction_history') || '[]');
+                // 去重：同bvid+同字幕URL只保留最新一条
+                const key = videoData.bvid + '_' + subtitleResult.lang_doc;
+                const idx = history.findIndex(h => h.key === key);
+                if (idx !== -1) history.splice(idx, 1);
+                history.unshift({
+                    key: key,
+                    bvid: videoData.bvid,
+                    title: videoData.title,
+                    author: videoData.author,
+                    lang_doc: subtitleResult.lang_doc,
+                    textPreview: subtitleResult.text.substring(0, 80),
+                    subtitleData: subtitleResult.data,
+                    subtitleText: subtitleResult.text,
+                    cid: videoData.cid,
+                    duration: videoData.duration,
+                    cookie: videoData.cookie,
+                    timestamp: Date.now()
+                });
+                // 最多保留20条
+                if (history.length > 20) history.length = 20;
+                localStorage.setItem('extraction_history', JSON.stringify(history));
+                renderHistory();
+            } catch (e) { console.warn('保存历史失败:', e); }
+        }
+
+        function getExtractionHistory() {
+            try {
+                return JSON.parse(localStorage.getItem('extraction_history') || '[]');
+            } catch (e) { return []; }
+        }
+
+        function renderHistory() {
+            const panel = document.getElementById('historyPanel');
+            if (!panel) return;
+            const history = getExtractionHistory();
+            if (history.length === 0) {
+                panel.innerHTML = '<p style="color:#999;font-size:12px;text-align:center;padding:8px;">暂无提取历史</p>';
+                return;
+            }
+            const currentBvid = window.currentVideoData && window.currentVideoData.bvid;
+            let html = '';
+            history.forEach((item, idx) => {
+                const date = new Date(item.timestamp);
+                const timeStr = date.toLocaleString('zh-CN', {month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});
+                const isActive = currentBvid && item.bvid === currentBvid;
+                html += `<div class="history-item ${isActive ? 'active' : ''}" onclick="loadFromHistory(${idx})">
+                    <div class="history-title" title="${item.title}">${item.title}</div>
+                    <div class="history-meta">
+                        <span>${item.bvid}</span>
+                        <span>${item.lang_doc}</span>
+                        <span>${timeStr}</span>
+                    </div>
+                    <button class="history-delete" onclick="event.stopPropagation();deleteHistory(${idx})" title="删除">×</button>
+                </div>`;
+            });
+            html += '<button class="history-clear-btn" onclick="clearHistory()">清空全部历史</button>';
+            panel.innerHTML = html;
+        }
+
+        async function loadFromHistory(idx) {
+            const history = getExtractionHistory();
+            const item = history[idx];
+            if (!item) return;
+            // 恢复数据到当前状态
+            clearAllContent();
+            window.currentVideoData = {
+                bvid: item.bvid,
+                cid: item.cid,
+                duration: item.duration,
+                title: item.title,
+                author: item.author,
+                subtitles: [{ lan_doc: item.lang_doc, subtitle_url: '', is_ai: true }],
+                cookie: item.cookie || ''
+            };
+            // 显示视频信息
+            document.getElementById('videoTitle').textContent = item.title;
+            document.getElementById('videoAuthor').textContent = item.author;
+            document.getElementById('videoBvid').textContent = item.bvid;
+            document.getElementById('result').classList.add('show');
+            // 直接显示字幕
+            const subtitleResult = {
+                text: item.subtitleText,
+                data: item.subtitleData,
+                lang_doc: item.lang_doc,
+                bvid: item.bvid
+            };
+            displaySubtitleText(subtitleResult, item.lang_doc);
+
+            // 🔥 尝试恢复该视频的工作区数据（截帧、上传视频、标注等）
+            const savedWorkspace = await loadWorkspaceData(item.bvid);
+            if (savedWorkspace && savedWorkspace.videoshotData && savedWorkspace.displayedSubtitles.length > 0) {
+                console.log('📂 从历史恢复工作区数据:', item.bvid);
+                window.uploadedVideos = savedWorkspace.uploadedVideos || [];
+                window.videoshotData = savedWorkspace.videoshotData || null;
+                window.displayedSubtitles = savedWorkspace.displayedSubtitles || [];
+                window.rowRankings = savedWorkspace.rowRankings || {};
+                window.rowNotes = savedWorkspace.rowNotes || {};
+                window.videoColumnNames = savedWorkspace.videoColumnNames || {};
+                // 恢复标注和总结
+                restoreAnnotations();
+                restoreSummaryText();
+                // 显示多列视图
+                renderMultiColumnView();
+                document.getElementById('frameSection').classList.add('show');
+                document.getElementById('uploadSection').classList.add('show');
+                renderUploadedList();
+            } else {
+                // 只有字幕，没有工作区数据，先恢复标注和总结
+                restoreAnnotations();
+                restoreSummaryText();
+            }
+
+            renderHistory();
+        }
+
+        function deleteHistory(idx) {
+            try {
+                const history = getExtractionHistory();
+                history.splice(idx, 1);
+                localStorage.setItem('extraction_history', JSON.stringify(history));
+                renderHistory();
+            } catch (e) {}
+        }
+
+        function clearHistory() {
+            if (!confirm('确定清空全部提取历史？')) return;
+            localStorage.removeItem('extraction_history');
+            renderHistory();
+        }
+
+        // 清空所有内容的通用函数
+        function clearAllContent() {
+            console.log('🧹 开始彻底清空...');
+
+            // 🔥 最先清空全局数据，确保一定执行到
+            const oldUploadedVideos = (window.uploadedVideos || []).slice();
+            window.currentVideoData = null;
+            window.subtitleCache = {};
+            window.currentSubtitle = null;
+            window.videoshotData = null;
+            window.uploadedVideos = [];
+            window.displayedSubtitles = [];
+            window.videoColumnNames = {};
+            window.rowNotes = {};
+            window.rowRankings = {};
+
+            // 🔥 递增请求代数，让所有旧的异步回调失效
+            window.requestGeneration++;
+            console.log('🔄 请求代数:', window.requestGeneration);
+
+            // 🔥 取消所有pending的定时器
+            if (window.pendingTimers && window.pendingTimers.length > 0) {
+                console.log('🚫 取消', window.pendingTimers.length, '个pending定时器');
+                window.pendingTimers.forEach(timer => clearTimeout(timer));
+                window.pendingTimers = [];
+            }
+
+            // 清空结果区域的DOM（全部try-catch保护）
+            try {
+                const subtitleTextEl = document.getElementById('subtitleText');
+                const subtitleLangEl = document.getElementById('subtitleLang');
+                const videoTitleEl = document.getElementById('videoTitle');
+                const videoAuthorEl = document.getElementById('videoAuthor');
+                const videoBvidEl = document.getElementById('videoBvid');
+                const subtitleListEl = document.getElementById('subtitleList');
+
+                if (subtitleTextEl) subtitleTextEl.innerHTML = '';
+                if (subtitleLangEl) subtitleLangEl.textContent = '';
+                if (videoTitleEl) videoTitleEl.textContent = '';
+                if (videoAuthorEl) videoAuthorEl.textContent = '';
+                if (videoBvidEl) videoBvidEl.textContent = '';
+                if (subtitleListEl) subtitleListEl.innerHTML = '';
+
+                document.getElementById('result').classList.remove('show');
+                document.querySelector('.subtitle-box').style.display = 'none';
+            } catch (e) { console.warn('清空结果区域出错:', e); }
+
+            // 清空截帧区域
+            try {
+                const frameSectionEl = document.getElementById('frameSection');
+                const frameContainerEl = document.getElementById('frameContainer');
+                const frameLoadingEl = document.getElementById('frameLoading');
+                if (frameSectionEl) frameSectionEl.classList.remove('show');
+                if (frameContainerEl) frameContainerEl.innerHTML = '';
+                if (frameLoadingEl) frameLoadingEl.style.display = 'none';
+            } catch (e) { console.warn('清空截帧区域出错:', e); }
+
+            // 清空上传区域
+            try {
+                const uploadSection = document.getElementById('uploadSection');
+                if (uploadSection) uploadSection.classList.remove('show');
+                const uploadedList = document.getElementById('uploadedList');
+                if (uploadedList) uploadedList.innerHTML = '';
+                const startFrameBtn = document.getElementById('startFrameBtn');
+                if (startFrameBtn) startFrameBtn.disabled = true;
+                const videoFiles = document.getElementById('videoFiles');
+                if (videoFiles) videoFiles.value = '';
+            } catch (e) { console.warn('清空上传区域出错:', e); }
+
+            // 🔥 不再删除服务端文件，只保留持久化的数据
+
+            console.log('✅ 已清空 DOM 和临时数据');
+        }
+
+        // 页面加载时初始化
+        window.addEventListener('DOMContentLoaded', async function() {
+            // 初始化 IndexedDB
+            await initIndexedDB();
+
+            // 加载cookie
+            const savedSessdata = localStorage.getItem('bili_sessdata');
+            const savedBiliJct = localStorage.getItem('bili_jct');
+            const savedDedeUserID = localStorage.getItem('bili_dedeuserid');
+
+            if (savedSessdata) document.getElementById('sessdata').value = savedSessdata;
+            if (savedBiliJct) document.getElementById('bili_jct').value = savedBiliJct;
+            if (savedDedeUserID) document.getElementById('dedeuserid').value = savedDedeUserID;
+
+            // 清空所有残留内容
+            clearAllContent();
+            // 渲染提取历史
+            renderHistory();
+
+            // 🔥 尝试恢复最近的工作会话
+            setTimeout(() => tryRestoreLastSession(), 500);
+        });
+
+        async function tryRestoreLastSession() {
+            const lastBvid = localStorage.getItem('lastWorkspaceBvid');
+            if (!lastBvid) return;
+
+            const savedWorkspace = await loadWorkspaceData(lastBvid);
+            if (!savedWorkspace) return;
+
+            console.log('📂 检测到上次的工作区数据，正在恢复:', lastBvid);
+
+            // 需要从历史中恢复视频信息，或者从本地缓存
+            const history = getExtractionHistory();
+            const historyItem = history.find(h => h.bvid === lastBvid);
+
+            if (!historyItem) {
+                console.warn('⚠️ 无法恢复完整信息，请从提取历史中选择');
+                return;
+            }
+
+            // 恢复视频数据
+            window.currentVideoData = {
+                bvid: lastBvid,
+                cid: historyItem.cid,
+                duration: historyItem.duration,
+                title: historyItem.title,
+                author: historyItem.author,
+                subtitles: [{ lan_doc: historyItem.lang_doc, subtitle_url: '', is_ai: true }],
+                cookie: historyItem.cookie || ''
+            };
+
+            // 显示视频信息
+            document.getElementById('videoTitle').textContent = historyItem.title;
+            document.getElementById('videoAuthor').textContent = historyItem.author;
+            document.getElementById('videoBvid').textContent = lastBvid;
+            document.getElementById('result').classList.add('show');
+            document.getElementById('frameLang').textContent = `(${historyItem.lang_doc})`;
+
+            // 直接显示字幕
+            const subtitleResult = {
+                text: historyItem.subtitleText,
+                data: historyItem.subtitleData,
+                lang_doc: historyItem.lang_doc,
+                bvid: lastBvid
+            };
+            displaySubtitleText(subtitleResult, historyItem.lang_doc);
+
+            // 恢复工作区数据（截帧、上传视频、标注等）
+            if (savedWorkspace.videoshotData && savedWorkspace.displayedSubtitles.length > 0) {
+                console.log('📂 恢复工作区数据');
+                window.uploadedVideos = savedWorkspace.uploadedVideos || [];
+                window.videoshotData = savedWorkspace.videoshotData || null;
+                window.displayedSubtitles = savedWorkspace.displayedSubtitles || [];
+                window.rowRankings = savedWorkspace.rowRankings || {};
+                window.rowNotes = savedWorkspace.rowNotes || {};
+                window.videoColumnNames = savedWorkspace.videoColumnNames || {};
+                // 恢复标注和总结
+                restoreAnnotations();
+                restoreSummaryText();
+                // 显示多列视图
+                renderMultiColumnView();
+                document.getElementById('frameSection').classList.add('show');
+                document.getElementById('uploadSection').classList.add('show');
+                renderUploadedList();
+                showToast('✅ 恢复了上次的工作会话');
+            }
+        }
+
+        function toggleCookie() {
+            const cookieInput = document.getElementById('cookieInput');
+            cookieInput.classList.toggle('show');
+        }
+
+        function getCookie() {
+            const sessdata = document.getElementById('sessdata').value.trim();
+            const bili_jct = document.getElementById('bili_jct').value.trim();
+            const dedeuserid = document.getElementById('dedeuserid').value.trim();
+
+            if (sessdata && bili_jct && dedeuserid) {
+                // 保存到localStorage
+                localStorage.setItem('bili_sessdata', sessdata);
+                localStorage.setItem('bili_jct', bili_jct);
+                localStorage.setItem('bili_dedeuserid', dedeuserid);
+
+                return `SESSDATA=${sessdata};bili_jct=${bili_jct};DedeUserID=${dedeuserid}`;
+            } else if (sessdata || bili_jct || dedeuserid) {
+                showError('❌ 请填写完整的三个Cookie字段');
+                return '';
+            }
+            return '';
+        }
+
+        // 回车键提交
+        document.getElementById('videoUrl').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                extractASR();
+            }
+        });
+
+        async function extractASR() {
+            const url = document.getElementById('videoUrl').value.trim();
+            const cookie = getCookie();
+            const loading = document.getElementById('loading');
+            const error = document.getElementById('error');
+            const extractBtn = document.getElementById('extractBtn');
+
+            if (!url) {
+                showError('请输入B站视频链接');
+                return;
+            }
+
+            if (cookie) {
+                localStorage.setItem('bilibiliCookie', cookie);
+            }
+
+            // 🔥 强制清空所有旧内容（防止显示上一次的字幕）
+            console.log('🧹 开始清空旧内容...');
+            clearAllContent();
+
+            // 记录当前请求代数
+            const myGeneration = window.requestGeneration;
+
+            // 显示加载状态
+            loading.classList.add('show');
+            error.classList.remove('show');
+            extractBtn.disabled = true;
+
+            try {
+                const response = await fetch('/api/extract', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Cache-Control': 'no-cache, no-store, must-revalidate',
+                        'Pragma': 'no-cache',
+                        'Expires': '0'
+                    },
+                    body: JSON.stringify({
+                        url: url,
+                        cookie: cookie
+                    })
+                });
+
+                const data = await response.json();
+
+                loading.classList.remove('show');
+                extractBtn.disabled = false;
+
+                if (data.success) {
+                    // 🔥 检查请求代数，如果已被新请求覆盖则丢弃
+                    if (myGeneration !== window.requestGeneration) {
+                        console.warn('⚠️ 请求已过期（代数不匹配），丢弃结果');
+                        return;
+                    }
+
+                    // 🔥 再次确保清空，防止异步问题
+                    window.currentVideoData = null;
+                    window.subtitleCache = {};
+
+                    console.log('📦 收到新视频数据:', data.bvid, data.video_info.title);
+                    console.log('📝 字幕列表:', data.subtitles.map(s => s.lan_doc).join(', '));
+
+                    // 保存新视频数据
+                    window.currentVideoData = {
+                        bvid: data.bvid,
+                        cid: data.video_info.cid,
+                        duration: data.video_info.duration,
+                        title: data.video_info.title,
+                        author: data.video_info.author,
+                        subtitles: data.subtitles,
+                        cookie: cookie
+                    };
+
+                    // 显示视频信息
+                    document.getElementById('videoTitle').textContent = data.video_info.title;
+                    document.getElementById('videoAuthor').textContent = data.video_info.author;
+                    document.getElementById('videoBvid').textContent = data.bvid;
+
+                    // 显示字幕列表
+                    displaySubtitleList(data.subtitles);
+
+                    result.classList.add('show');
+
+                    // 🔥 尝试恢复该视频的旧工作区数据（上传视频、截帧、标注等）
+                    const savedWorkspace = await loadWorkspaceData(data.bvid);
+                    if (savedWorkspace) {
+                        console.log('📂 恢复工作区数据:', data.bvid);
+                        window.uploadedVideos = savedWorkspace.uploadedVideos || [];
+                        window.videoshotData = savedWorkspace.videoshotData || null;
+                        window.displayedSubtitles = savedWorkspace.displayedSubtitles || [];
+                        window.rowRankings = savedWorkspace.rowRankings || {};
+                        window.rowNotes = savedWorkspace.rowNotes || {};
+                        window.videoColumnNames = savedWorkspace.videoColumnNames || {};
+                        // 如果有之前的截帧数据，直接显示多列视图
+                        if (window.videoshotData && window.displayedSubtitles.length > 0) {
+                            restoreAnnotations();
+                            restoreSummaryText();
+                            renderMultiColumnView();
+                            document.getElementById('frameSection').classList.add('show');
+                            document.getElementById('uploadSection').classList.add('show');
+                            renderUploadedList();
+                        }
+                    }
+
+                    // 如果只有一个字幕，自动加载
+                    if (data.subtitles.length === 1) {
+                        console.log('🎯 只有1个字幕，自动加载');
+                        const timer1 = setTimeout(() => selectSubtitle(0), 300);
+                        window.pendingTimers.push(timer1);
+                    }
+
+                    const timer2 = setTimeout(() => {
+                        result.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    }, 100);
+                    window.pendingTimers.push(timer2);
+
+                } else {
+                    showError(data.error || '提取失败');
+                }
+            } catch (err) {
+                loading.classList.remove('show');
+                extractBtn.disabled = false;
+                showError('网络错误或服务器未响应，请确保已启动服务');
+                console.error('Error:', err);
+            }
+        }
+
+        function displaySubtitleList(subtitles) {
+            const listContainer = document.getElementById('subtitleList');
+
+            let html = `<h3>📚 可用字幕 (${subtitles.length}个)</h3>`;
+
+            subtitles.forEach((sub, index) => {
+                const icon = sub.is_ai ? '🤖' : '✍️';
+                const badge = sub.is_ai
+                    ? '<span class="subtitle-badge badge-ai">AI生成</span>'
+                    : '<span class="subtitle-badge badge-manual">手动上传</span>';
+
+                const recommendBadge = (index === 0 && sub.is_ai)
+                    ? '<span class="subtitle-badge badge-recommend">推荐</span>'
+                    : '';
+
+                html += `
+                    <div class="subtitle-item">
+                        <div class="subtitle-info">
+                            <div class="subtitle-name">
+                                ${icon} ${sub.lan_doc}
+                                ${badge}
+                                ${recommendBadge}
+                            </div>
+                            <div class="subtitle-meta">${sub.lan}</div>
+                        </div>
+                        <button onclick="selectSubtitle(${index})">查看</button>
+                    </div>
+                `;
+            });
+
+            if (subtitles.length > 1) {
+                html += '<button class="download-all-btn" onclick="downloadAllSubtitles()">📥 下载所有字幕</button>';
+            }
+
+            listContainer.innerHTML = html;
+        }
+
+        async function selectSubtitle(index) {
+            const videoData = window.currentVideoData;
+            if (!videoData || !videoData.subtitles[index]) {
+                showError('字幕数据错误');
+                console.error('❌ 字幕数据错误:', videoData, index);
+                return;
+            }
+
+            const myGeneration = window.requestGeneration;
+            const subtitle = videoData.subtitles[index];
+            const subtitleBox = document.querySelector('.subtitle-box');
+            const loading = document.getElementById('loading');
+
+            console.log('🎬 开始加载字幕 -', '视频:', videoData.bvid, '语言:', subtitle.lan_doc);
+            console.log('📍 字幕URL:', subtitle.subtitle_url);
+
+            // 先清空旧字幕内容，避免显示上一个字幕
+            document.getElementById('subtitleText').innerHTML = '<p style="color: #999; text-align: center; padding: 20px;">正在加载字幕...</p>';
+            document.getElementById('subtitleLang').textContent = '';
+            subtitleBox.style.display = 'block';
+
+            // 🔥 禁用缓存，每次都从服务器获取最新字幕
+            loading.classList.add('show');
+            loading.querySelector('p').textContent = `正在加载 ${subtitle.lan_doc} 字幕...`;
+
+            try {
+                const response = await fetch('/api/download-subtitle', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Cache-Control': 'no-cache, no-store, must-revalidate',
+                        'Pragma': 'no-cache',
+                        'Expires': '0'
+                    },
+                    body: JSON.stringify({
+                        subtitle_url: subtitle.subtitle_url,
+                        cookie: videoData.cookie
+                    })
+                });
+
+                const data = await response.json();
+
+                loading.classList.remove('show');
+                loading.querySelector('p').textContent = '正在提取字幕，请稍候...';
+
+                if (data.success) {
+                    // 🔥 检查请求代数
+                    if (myGeneration !== window.requestGeneration) {
+                        console.warn('⚠️ 字幕请求已过期，丢弃');
+                        return;
+                    }
+
+                    console.log('✅ 字幕下载成功，bvid:', videoData.bvid, '前50字:', data.text.substring(0, 50));
+
+                    const subtitleResult = {
+                        text: data.text,
+                        data: data.data,
+                        lang_doc: subtitle.lan_doc,
+                        bvid: videoData.bvid
+                    };
+
+                    displaySubtitleText(subtitleResult, subtitle.lan_doc);
+
+                    // 🔥 保存到提取历史
+                    saveExtractionHistory(videoData, subtitleResult);
+                } else {
+                    console.error('❌ 字幕下载失败:', data.error);
+                    showError('加载字幕失败');
+                }
+            } catch (err) {
+                loading.classList.remove('show');
+                showError('网络错误');
+                console.error('Error:', err);
+            }
+        }
+
+        function displaySubtitleText(subtitleData, langDoc) {
+            // 🔥 验证：确保当前视频数据存在且匹配
+            if (!window.currentVideoData) {
+                console.error('❌ 无视频数据，跳过显示字幕');
+                return;
+            }
+
+            // 如果字幕数据带有bvid，验证是否匹配当前视频
+            if (subtitleData.bvid && subtitleData.bvid !== window.currentVideoData.bvid) {
+                console.warn('⚠️ 字幕所属视频不匹配，跳过显示', {
+                    subtitle_bvid: subtitleData.bvid,
+                    current_bvid: window.currentVideoData.bvid
+                });
+                return;
+            }
+
+            const subtitleBox = document.querySelector('.subtitle-box');
+
+            console.log('📺 显示字幕 -', '视频:', window.currentVideoData.bvid, '语言:', langDoc);
+
+            // 先清空再设置，确保DOM更新
+            const subtitleTextEl = document.getElementById('subtitleText');
+            const subtitleLangEl = document.getElementById('subtitleLang');
+
+            subtitleTextEl.textContent = '';  // 先清空
+            subtitleLangEl.textContent = '';
+
+            // 强制DOM刷新
+            void subtitleTextEl.offsetHeight;
+
+            // 设置新内容
+            subtitleLangEl.textContent = `(${langDoc})`;
+            subtitleTextEl.textContent = subtitleData.text;
+
+            window.currentSubtitle = {
+                text: subtitleData.text,
+                data: subtitleData.data || null,  // 原始字幕条目（含时间戳）
+                bvid: window.currentVideoData.bvid,
+                title: window.currentVideoData.title,
+                lang: langDoc
+            };
+
+            subtitleBox.style.display = 'block';
+
+            // 如果有带时间戳的字幕条目，显示上传区域和开始截帧按钮
+            if (subtitleData.data && subtitleData.data.length > 0) {
+                document.getElementById('frameLang').textContent = `(${langDoc})`;
+                document.getElementById('uploadSection').classList.add('show');
+                document.getElementById('startFrameBtn').disabled = false;
+            }
+
+            const timer = setTimeout(() => {
+                subtitleBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }, 100);
+            window.pendingTimers.push(timer);
+        }
+
+        async function downloadAllSubtitles() {
+            const videoData = window.currentVideoData;
+            if (!videoData) return;
+
+            const loading = document.getElementById('loading');
+            loading.classList.add('show');
+            loading.querySelector('p').textContent = '正在下载所有字幕...';
+
+            const allTexts = [];
+
+            for (let i = 0; i < videoData.subtitles.length; i++) {
+                const subtitle = videoData.subtitles[i];
+
+                try {
+                    let subtitleData;
+
+                    // 检查缓存
+                    if (window.subtitleCache[subtitle.subtitle_url]) {
+                        subtitleData = window.subtitleCache[subtitle.subtitle_url];
+                    } else {
+                        const response = await fetch('/api/download-subtitle', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                subtitle_url: subtitle.subtitle_url,
+                                cookie: videoData.cookie
+                            })
+                        });
+
+                        const data = await response.json();
+                        if (data.success) {
+                            subtitleData = {
+                                text: data.text,
+                                lang_doc: subtitle.lan_doc
+                            };
+                            window.subtitleCache[subtitle.subtitle_url] = subtitleData;
+                        }
+                    }
+
+                    if (subtitleData) {
+                        allTexts.push(`========== ${subtitleData.lang_doc} ==========\n${subtitleData.text}`);
+                    }
+                } catch (err) {
+                    console.error(`下载字幕 ${subtitle.lan_doc} 失败:`, err);
+                }
+            }
+
+            loading.classList.remove('show');
+            loading.querySelector('p').textContent = '正在提取字幕，请稍候...';
+
+            if (allTexts.length > 0) {
+                const combinedText = allTexts.join('\n\n');
+                displaySubtitleText({ text: combinedText }, '所有字幕');
+                showToast(`✅ 已加载 ${allTexts.length} 个字幕`);
+            } else {
+                showError('下载所有字幕失败');
+            }
+        }
+
+        function showError(message) {
+            const error = document.getElementById('error');
+            error.textContent = '❌ ' + message;
+            error.classList.add('show');
+            setTimeout(() => {
+                error.classList.remove('show');
+            }, 5000);
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2000);
+        }
+
+        function copyText() {
+            const text = document.getElementById('subtitleText').textContent;
+
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(() => {
+                    showToast('✅ 已复制到剪贴板！');
+                }).catch(() => {
+                    fallbackCopy(text);
+                });
+            } else {
+                fallbackCopy(text);
+            }
+        }
+
+        function fallbackCopy(text) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                document.execCommand('copy');
+                showToast('✅ 已复制到剪贴板！');
+            } catch (err) {
+                showError('复制失败，请手动复制');
+            }
+            document.body.removeChild(textarea);
+        }
+
+        function downloadText() {
+            if (!window.currentSubtitle) {
+                showError('没有可下载的内容');
+                return;
+            }
+
+            const { text, bvid, title } = window.currentSubtitle;
+            const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+
+            // 清理文件名中的非法字符
+            const safeTitle = title.replace(/[<>:"/\\|?*]/g, '_').substring(0, 50);
+            a.href = url;
+            a.download = `${safeTitle}_${bvid}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            showToast('✅ 文件下载成功！');
+        }
+
+        // ============================================================
+        // 上传 + 多视频截帧对照 + 打标
+        // ============================================================
+
+        window.videoshotData = null;
+        window.uploadedVideos = [];
+
+        function formatTime(seconds) {
+            const m = Math.floor(seconds / 60);
+            const s = Math.floor(seconds % 60);
+            return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        }
+
+        function deduplicateSubtitles(items) {
+            if (!items || items.length === 0) return [];
+            const merged = [];
+            let current = { ...items[0] };
+            for (let i = 1; i < items.length; i++) {
+                if (items[i].content.trim() === current.content.trim()) {
+                    current.to = items[i].to;
+                } else {
+                    merged.push(current);
+                    current = { ...items[i] };
+                }
+            }
+            merged.push(current);
+            return merged;
+        }
+
+        // 上传视频文件
+        async function handleVideoUpload(files) {
+            if (!files || files.length === 0) return;
+
+            const maxFiles = 2;
+            if (window.uploadedVideos.length + files.length > maxFiles) {
+                showError(`最多上传${maxFiles}个对比视频`);
+                return;
+            }
+
+            for (const file of files) {
+                const formData = new FormData();
+                formData.append('video', file);
+
+                try {
+                    const statusEl = document.getElementById('uploadedList');
+                    statusEl.innerHTML += `<span class="uploaded-item" style="opacity:0.5;">⏳ ${file.name} 上传中...</span>`;
+
+                    const response = await fetch('/api/upload-video', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const data = await response.json();
+
+                    if (data.success) {
+                        window.uploadedVideos.push({ filePath: data.filePath, fileName: data.fileName });
+                        renderUploadedList();
+                    } else {
+                        showError(data.error || '上传失败');
+                        renderUploadedList();
+                    }
+                } catch (err) {
+                    showError('上传失败: ' + err.message);
+                    renderUploadedList();
+                }
+            }
+
+            document.getElementById('videoFiles').value = '';
+        }
+
+        function renderUploadedList() {
+            const el = document.getElementById('uploadedList');
+            el.innerHTML = window.uploadedVideos.map((v, i) =>
+                `<span class="uploaded-item">📹 ${v.fileName} <span class="remove-file" onclick="removeUploadedVideo(${i})">✕</span></span>`
+            ).join('');
+            // 保存工作区数据
+            saveWorkspaceData();
+        }
+
+        async function removeUploadedVideo(index) {
+            const removed = window.uploadedVideos.splice(index, 1);
+            if (removed.length > 0) {
+                fetch('/api/uploaded-files', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ filePaths: [removed[0].filePath] })
+                }).catch(() => {});
+            }
+            renderUploadedList();
+        }
+
+        // 手动触发截帧
+        async function startFrameExtraction() {
+            const subtitle = window.currentSubtitle;
+            if (!subtitle || !subtitle.data) {
+                showError('请先提取字幕');
+                return;
+            }
+
+            const btn = document.getElementById('startFrameBtn');
+            btn.disabled = true;
+            btn.textContent = '⏳ 截帧中...';
+
+            const dedupedItems = deduplicateSubtitles(subtitle.data);
+            const timestamps = dedupedItems.map(item => item.from);
+
+            const frameSection = document.getElementById('frameSection');
+            const frameLoading = document.getElementById('frameLoading');
+            const frameContainer = document.getElementById('frameContainer');
+
+            frameSection.classList.add('show');
+            frameLoading.style.display = 'block';
+            frameLoading.innerHTML = `<div class="spinner"></div><p>正在截取视频帧 (0/${timestamps.length})...</p>`;
+            frameContainer.innerHTML = '';
+
+            const myGeneration = window.requestGeneration;
+
+            try {
+                const response = await fetch('/api/videoshot', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        bvid: window.currentVideoData.bvid,
+                        cid: window.currentVideoData.cid,
+                        subtitleTimestamps: timestamps,
+                        cookie: window.currentVideoData.cookie || '',
+                        localFilePaths: window.uploadedVideos.map(v => ({ filePath: v.filePath, fileName: v.fileName }))
+                    })
+                });
+
+                const data = await response.json();
+
+                if (myGeneration !== window.requestGeneration) return;
+
+                if (data.success) {
+                    window.videoshotData = {
+                        biliFrames: data.biliFrames || {},
+                        localFrames: data.localFrames || []
+                    };
+                    window.displayedSubtitles = dedupedItems.map(item => ({ ...item, deleted: false }));
+                    restoreAnnotations();
+                    renderMultiColumnView();
+                    frameLoading.style.display = 'none';
+                    // 🔥 保存工作区数据
+                    saveWorkspaceData();
+                } else {
+                    frameLoading.innerHTML = `<p style="color:#999;">${data.error || '截帧失败'}</p>`;
+                }
+            } catch (err) {
+                if (myGeneration === window.requestGeneration) {
+                    frameLoading.innerHTML = '<p style="color:#999;">截帧请求失败</p>';
+                }
+            }
+
+            btn.disabled = false;
+            btn.textContent = '🎬 开始截帧对比';
+        }
+
+        // 渲染多列对照表格
+        function renderMultiColumnView() {
+            const container = document.getElementById('frameContainer');
+            const shotData = window.videoshotData;
+            const items = window.displayedSubtitles;
+            if (!items || items.length === 0 || !shotData) return;
+
+            const videoNames = ['B站视频', ...shotData.localFrames.map(lf => lf.fileName || '上传视频')];
+            const videoKeys = ['bili', ...shotData.localFrames.map((_, i) => `local${i + 1}`)];
+
+            // 初始化列名（如果尚未设置）
+            videoKeys.forEach((key, i) => {
+                if (!window.videoColumnNames[key]) {
+                    window.videoColumnNames[key] = videoNames[i];
+                }
+            });
+
+            // 表头
+            let headerHtml = '<th>口播文案</th>';
+            videoKeys.forEach((key, i) => {
+                const displayName = window.videoColumnNames[key] || videoNames[i];
+                const escaped = (displayName || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                headerHtml += `<th class="editable-header" data-video-key="${key}" ondblclick="editColumnName(this,'${key}')">${escaped}</th>`;
+            });
+            headerHtml += '<th>Best</th><th>备注</th><th></th>';
+
+            // 表体
+            let bodyHtml = '';
+            items.forEach((item, idx) => {
+                const tsKey = String(Math.round(item.from * 10) / 10);
+                const deletedClass = item.deleted ? ' class="deleted"' : '';
+                const text = (item.content || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+                let row = `<td class="text-col"><span class="time">${formatTime(item.from)}</span><div class="content editable-text" ondblclick="editSubtitleText(this,${idx})">${text}</div></td>`;
+
+                // B站帧
+                const biliFrame = shotData.biliFrames[tsKey];
+                row += makeFrameCellHtml(biliFrame, idx, 'bili', videoKeys);
+
+                // 本地帧
+                shotData.localFrames.forEach((lf, li) => {
+                    const localFrame = lf.frames[tsKey];
+                    row += makeFrameCellHtml(localFrame, idx, `local${li + 1}`, videoKeys);
+                });
+
+                // Best列
+                row += `<td class="best-col" id="best-${idx}">-</td>`;
+
+                // 备注列
+                const noteVal = (window.rowNotes[idx] || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+                row += `<td class="notes-col"><textarea class="note-input" data-row="${idx}" oninput="window.rowNotes[${idx}]=this.value;saveAnnotations()" placeholder="备注...">${noteVal}</textarea></td>`;
+
+                // 删除按钮
+                row += `<td><button class="delete-row-btn" onclick="deleteRow(${idx})" title="删除此行">✕</button></td>`;
+
+                bodyHtml += `<tr id="row-${idx}"${deletedClass}>${row}</tr>`;
+            });
+
+            container.innerHTML = `<table class="frame-table"><thead><tr>${headerHtml}</tr></thead><tbody>${bodyHtml}</tbody></table>`;
+
+            // 绑定粘贴事件
+            container.querySelectorAll('.frame-placeholder').forEach(el => {
+                el.addEventListener('paste', handleFramePaste);
+            });
+
+            // 初始化Best列
+            items.forEach((_, idx) => updateBestCell(idx));
+        }
+
+        function makeFrameCellHtml(frameBase64, rowIdx, videoKey, videoKeys) {
+            const rankBadgesHtml = (videoKeys && videoKeys.length > 1) ? buildRankBadgesHtml(rowIdx, videoKey, videoKeys.length) : '';
+
+            if (frameBase64) {
+                return `<td class="frame-cell" data-row="${rowIdx}" data-video="${videoKey}">
+                    <img src="data:image/jpeg;base64,${frameBase64}">
+                    <div class="frame-actions">
+                        <button onclick="deleteFrame(${rowIdx},'${videoKey}')" title="删除帧">🗑</button>
+                        <label title="上传替换"><input type="file" accept="image/*" onchange="replaceFrame(${rowIdx},'${videoKey}',this.files[0])">📎</label>
+                    </div>
+                    ${rankBadgesHtml}
+                </td>`;
+            }
+            return `<td class="frame-cell" data-row="${rowIdx}" data-video="${videoKey}">
+                <div class="frame-placeholder" tabindex="0" data-row="${rowIdx}" data-video="${videoKey}">
+                    点击后Ctrl+V粘贴<br>或
+                    <label style="color:#667eea;cursor:pointer;text-decoration:underline;">选择图片<input type="file" accept="image/*" onchange="replaceFrame(${rowIdx},'${videoKey}',this.files[0])" style="display:none;"></label>
+                </div>
+                ${rankBadgesHtml}
+            </td>`;
+        }
+
+        // 构建排名徽章HTML
+        function buildRankBadgesHtml(rowIdx, videoKey, totalVideos) {
+            let html = '<div class="rank-badges">';
+            for (let r = 1; r <= totalVideos; r++) {
+                const currentRank = window.rowRankings[rowIdx] && window.rowRankings[rowIdx][videoKey];
+                const activeClass = currentRank === r ? ' active' : '';
+                html += `<span class="rank-badge${activeClass}" data-rank="${r}" data-row="${rowIdx}" data-video="${videoKey}" onclick="toggleRank(${rowIdx},'${videoKey}',${r})">${r}</span>`;
+            }
+            html += '</div>';
+            return html;
+        }
+
+        // 切换排名
+        function toggleRank(rowIdx, videoKey, rank) {
+            if (!window.rowRankings[rowIdx]) window.rowRankings[rowIdx] = {};
+            if (window.rowRankings[rowIdx][videoKey] === rank) {
+                delete window.rowRankings[rowIdx][videoKey];
+            } else {
+                window.rowRankings[rowIdx][videoKey] = rank;
+            }
+            updateRowBadges(rowIdx);
+            updateBestCell(rowIdx);
+            saveAnnotations();
+        }
+
+        // 刷新某行所有徽章样式
+        function updateRowBadges(rowIdx) {
+            document.querySelectorAll(`.rank-badge[data-row="${rowIdx}"]`).forEach(badge => {
+                const vk = badge.dataset.video;
+                const r = parseInt(badge.dataset.rank);
+                const currentRank = window.rowRankings[rowIdx] && window.rowRankings[rowIdx][vk];
+                if (currentRank === r) {
+                    badge.classList.add('active');
+                } else {
+                    badge.classList.remove('active');
+                }
+            });
+        }
+
+        // 更新Best列
+        function updateBestCell(rowIdx) {
+            const cell = document.getElementById(`best-${rowIdx}`);
+            if (!cell) return;
+            const rowRanks = window.rowRankings[rowIdx];
+            if (!rowRanks || Object.keys(rowRanks).length === 0) {
+                cell.textContent = '-';
+                return;
+            }
+            const minRank = Math.min(...Object.values(rowRanks));
+            const winners = Object.entries(rowRanks)
+                .filter(([_, rank]) => rank === minRank)
+                .map(([vk]) => getVideoDisplayName(vk));
+            cell.textContent = winners.join(', ');
+        }
+
+        // 获取视频显示名称
+        function getVideoDisplayName(videoKey) {
+            if (window.videoColumnNames[videoKey]) return window.videoColumnNames[videoKey];
+            if (videoKey === 'bili') return 'B站视频';
+            const idx = parseInt(videoKey.replace('local', '')) - 1;
+            const shotData = window.videoshotData;
+            if (shotData && shotData.localFrames[idx]) {
+                return shotData.localFrames[idx].fileName || '上传视频';
+            }
+            return videoKey;
+        }
+
+        // 双击编辑列名
+        function editColumnName(th, videoKey) {
+            const current = window.videoColumnNames[videoKey] || th.textContent;
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = current;
+            input.style.cssText = 'width:100%;text-align:center;font-size:13px;border:1px solid #667eea;border-radius:4px;padding:2px 4px;';
+
+            function commit() {
+                const newName = input.value.trim() || current;
+                window.videoColumnNames[videoKey] = newName;
+                th.textContent = newName;
+                // 更新所有Best列
+                const items = window.displayedSubtitles;
+                if (items) items.forEach((_, i) => updateBestCell(i));
+                saveAnnotations();
+            }
+
+            input.addEventListener('blur', commit);
+            input.addEventListener('keydown', e => { if (e.key === 'Enter') input.blur(); });
+
+            th.textContent = '';
+            th.appendChild(input);
+            input.focus();
+            input.select();
+        }
+
+        // 双击编辑口播文案
+        function editSubtitleText(div, rowIdx) {
+            const item = window.displayedSubtitles[rowIdx];
+            if (!item) return;
+            const current = item.content || '';
+            const textarea = document.createElement('textarea');
+            textarea.value = current;
+            textarea.style.cssText = 'width:100%;min-height:60px;font-size:14px;border:1px solid #667eea;border-radius:4px;padding:4px 6px;font-family:inherit;resize:vertical;';
+
+            function commit() {
+                const newText = textarea.value.trim() || current;
+                item.content = newText;
+                item._edited = true;
+                div.textContent = newText;
+                saveAnnotations();
+            }
+
+            textarea.addEventListener('blur', commit);
+            textarea.addEventListener('keydown', e => {
+                if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); textarea.blur(); }
+            });
+
+            div.textContent = '';
+            div.appendChild(textarea);
+            textarea.focus();
+        }
+
+        // 删除整行
+        function deleteRow(index) {
+            if (window.displayedSubtitles[index]) {
+                window.displayedSubtitles[index].deleted = true;
+                const tr = document.getElementById(`row-${index}`);
+                if (tr) tr.classList.add('deleted');
+                saveAnnotations();
+            }
+        }
+
+        // 删除单个帧
+        // 获取当前所有videoKeys
+        function getCurrentVideoKeys() {
+            const shotData = window.videoshotData;
+            if (!shotData) return ['bili'];
+            return ['bili', ...shotData.localFrames.map((_, i) => `local${i + 1}`)];
+        }
+
+        function deleteFrame(rowIdx, videoKey) {
+            // 从数据中清除
+            const tsKey = String(Math.round(window.displayedSubtitles[rowIdx].from * 10) / 10);
+            if (videoKey === 'bili') {
+                delete window.videoshotData.biliFrames[tsKey];
+            } else {
+                const localIdx = parseInt(videoKey.replace('local', '')) - 1;
+                if (window.videoshotData.localFrames[localIdx]) {
+                    delete window.videoshotData.localFrames[localIdx].frames[tsKey];
+                }
+            }
+            // 重新渲染该格子（保留排名徽章）
+            const videoKeys = getCurrentVideoKeys();
+            const rankBadgesHtml = videoKeys.length > 1 ? buildRankBadgesHtml(rowIdx, videoKey, videoKeys.length) : '';
+            const td = document.querySelector(`td.frame-cell[data-row="${rowIdx}"][data-video="${videoKey}"]`);
+            if (td) {
+                td.innerHTML = `<div class="frame-placeholder" tabindex="0" data-row="${rowIdx}" data-video="${videoKey}">
+                    点击后Ctrl+V粘贴<br>或
+                    <label style="color:#667eea;cursor:pointer;text-decoration:underline;">选择图片<input type="file" accept="image/*" onchange="replaceFrame(${rowIdx},'${videoKey}',this.files[0])" style="display:none;"></label>
+                </div>${rankBadgesHtml}`;
+                td.querySelector('.frame-placeholder').addEventListener('paste', handleFramePaste);
+            }
+        }
+
+        // 替换单个帧（上传图片）
+        function replaceFrame(rowIdx, videoKey, file) {
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const dataUrl = e.target.result;
+                const base64 = dataUrl.split(',')[1];
+                const item = window.displayedSubtitles[rowIdx];
+                if (!item) return;
+                const tsKey = String(Math.round(item.from * 10) / 10);
+
+                // 更新数据
+                if (videoKey === 'bili') {
+                    window.videoshotData.biliFrames[tsKey] = base64;
+                } else {
+                    const localIdx = parseInt(videoKey.replace('local', '')) - 1;
+                    if (window.videoshotData.localFrames[localIdx]) {
+                        window.videoshotData.localFrames[localIdx].frames[tsKey] = base64;
+                    }
+                }
+
+                // 更新DOM（保留排名徽章）
+                const videoKeys = getCurrentVideoKeys();
+                const rankBadgesHtml = videoKeys.length > 1 ? buildRankBadgesHtml(rowIdx, videoKey, videoKeys.length) : '';
+                const td = document.querySelector(`td.frame-cell[data-row="${rowIdx}"][data-video="${videoKey}"]`);
+                if (td) {
+                    td.innerHTML = `<img src="${dataUrl}">
+                        <div class="frame-actions">
+                            <button onclick="deleteFrame(${rowIdx},'${videoKey}')" title="删除帧">🗑</button>
+                            <label title="上传替换"><input type="file" accept="image/*" onchange="replaceFrame(${rowIdx},'${videoKey}',this.files[0])">📎</label>
+                        </div>${rankBadgesHtml}`;
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // 粘贴图片到帧格子
+        function handleFramePaste(e) {
+            const items = e.clipboardData && e.clipboardData.items;
+            if (!items) return;
+
+            for (const item of items) {
+                if (item.type.startsWith('image/')) {
+                    e.preventDefault();
+                    const file = item.getAsFile();
+                    const el = e.target.closest('.frame-placeholder') || e.target;
+                    const rowIdx = parseInt(el.dataset.row);
+                    const videoKey = el.dataset.video;
+                    if (!isNaN(rowIdx) && videoKey) {
+                        replaceFrame(rowIdx, videoKey, file);
+                    }
+                    break;
+                }
+            }
+        }
+
+        // 收集排名
+        function collectRankings() {
+            return window.rowRankings;
+        }
+
+        // 计算GSB对比总结（未标注的视频视为排名最差）
+        function computeGSB(rankings, videoKeys) {
+            const results = [];
+            for (let i = 0; i < videoKeys.length; i++) {
+                for (let j = i + 1; j < videoKeys.length; j++) {
+                    const keyA = videoKeys[i], keyB = videoKeys[j];
+                    let good = 0, same = 0, bad = 0;
+                    Object.values(rankings).forEach(rowRank => {
+                        const rankA = rowRank[keyA], rankB = rowRank[keyB];
+                        // 至少有一个视频被标注才统计
+                        if (rankA || rankB) {
+                            const valA = rankA || 999;  // 未标注视为最差
+                            const valB = rankB || 999;
+                            if (valA < valB) good++;
+                            else if (valA === valB) same++;
+                            else bad++;
+                        }
+                    });
+                    const nameA = getVideoDisplayName(keyA);
+                    const nameB = getVideoDisplayName(keyB);
+                    results.push({ nameA, nameB, good, same, bad });
+                }
+            }
+            return results;
+        }
+
+        // 计算每行Best
+        function computeBestPerRow(rankings) {
+            const bestMap = {};
+            Object.entries(rankings).forEach(([rowIdx, rowRank]) => {
+                if (!rowRank || Object.keys(rowRank).length === 0) return;
+                const minRank = Math.min(...Object.values(rowRank));
+                const winners = Object.entries(rowRank)
+                    .filter(([_, r]) => r === minRank)
+                    .map(([key]) => getVideoDisplayName(key));
+                bestMap[rowIdx] = winners.join(', ');
+            });
+            return bestMap;
+        }
+
+        // 导出HTML文档
+        async function exportHtmlDocument() {
+            const videoData = window.currentVideoData;
+            const shotData = window.videoshotData;
+            const items = window.displayedSubtitles;
+
+            if (!videoData || !items || items.length === 0) {
+                showError('请先提取字幕并截帧');
+                return;
+            }
+
+            if (!shotData) {
+                showError('请先点击"开始截帧对比"');
+                return;
+            }
+
+            const exportBtn = document.getElementById('exportBtn');
+            exportBtn.disabled = true;
+            exportBtn.textContent = '⏳ 正在导出...';
+
+            // 过滤已删除行
+            const activeItems = items.filter(item => !item.deleted);
+            const rankings = collectRankings();
+            const videoKeys = ['bili', ...shotData.localFrames.map((_, i) => `local${i + 1}`)];
+
+            // 重新映射rankings和notes（跳过已删除行）
+            const activeRankings = {};
+            const activeNotes = {};
+            let activeIdx = 0;
+            items.forEach((item, origIdx) => {
+                if (!item.deleted) {
+                    if (rankings[origIdx]) activeRankings[activeIdx] = rankings[origIdx];
+                    if (window.rowNotes[origIdx]) activeNotes[activeIdx] = window.rowNotes[origIdx];
+                    activeIdx++;
+                }
+            });
+
+            // 计算GSB和Best
+            const gsbSummary = computeGSB(activeRankings, videoKeys);
+            const bestPerRow = computeBestPerRow(activeRankings);
+            const summary = document.getElementById('summaryText').value.trim();
+
+            try {
+                const response = await fetch('/api/export-html', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        title: videoData.title,
+                        author: videoData.author,
+                        bvid: videoData.bvid,
+                        subtitleItems: activeItems,
+                        biliFrames: shotData.biliFrames,
+                        localFrames: shotData.localFrames,
+                        rankings: activeRankings,
+                        videoNames: shotData.localFrames.map(lf => lf.fileName || '上传视频'),
+                        videoColumnNames: window.videoColumnNames,
+                        notes: activeNotes,
+                        gsbSummary: gsbSummary,
+                        bestPerRow: bestPerRow,
+                        summary: summary
+                    })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    // 获取在线链接
+                    if (data.shareUrl) {
+                        // 复制到剪贴板
+                        if (navigator.clipboard) {
+                            navigator.clipboard.writeText(data.shareUrl);
+                        }
+                        // 显示分享链接对话框
+                        const msg = `✅ 导出成功！\n\n🔗 在线分享链接：\n${data.shareUrl}\n\n(已复制到剪贴板)\n\n在其他电脑访问此链接即可查看`;
+                        alert(msg);
+                        console.log('分享链接:', data.shareUrl);
+                    } else {
+                        // 降级方案：本地下载
+                        const blob = new Blob([data.html], { type: 'text/html;charset=utf-8' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `${videoData.title.replace(/[<>:"/\\|?*]/g, '_').substring(0, 50)}_截帧对照.html`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                        showToast('HTML文档已下载（本地版本）');
+                    }
+                } else {
+                    showError(data.error || '导出失败');
+                }
+            } catch (err) {
+                showError('导出请求失败: ' + err.message);
+            }
+
+            exportBtn.disabled = false;
+            exportBtn.textContent = '📄 导出HTML文档';
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,1096 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>B站视频ASR文本提取工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 900px;
+            width: 100%;
+            padding: 40px;
+            animation: fadeIn 0.5s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle-text {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .input-section {
+            margin-bottom: 20px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        input[type="text"], textarea {
+            flex: 1;
+            padding: 15px 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s;
+            font-family: inherit;
+        }
+
+        input[type="text"]:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 60px;
+            font-size: 13px;
+        }
+
+        button {
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .cookie-section {
+            background: linear-gradient(135deg, #fff8e1 0%, #ffe0b2 100%);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+            border: 2px solid #ffb74d;
+            box-shadow: 0 4px 15px rgba(255, 152, 0, 0.15);
+        }
+
+        .cookie-section h4 {
+            color: #e65100;
+            margin-bottom: 12px;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .cookie-section code {
+            background: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 13px;
+            color: #d63384;
+            font-weight: 600;
+        }
+
+        .toggle-cookie {
+            background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+            color: white;
+            padding: 10px 20px;
+            font-size: 14px;
+            cursor: pointer;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            margin-top: 10px;
+            box-shadow: 0 3px 10px rgba(255, 152, 0, 0.3);
+            transition: all 0.3s;
+        }
+
+        .toggle-cookie:hover {
+            background: linear-gradient(135deg, #fb8c00 0%, #ef6c00 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 152, 0, 0.4);
+        }
+
+        .cookie-input {
+            display: none;
+            margin-top: 20px;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .cookie-input.show {
+            display: block;
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .cookie-field {
+            margin-bottom: 15px;
+        }
+
+        .cookie-field label {
+            display: block;
+            font-weight: 600;
+            color: #444;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .cookie-field label span {
+            color: #ff5722;
+            margin-left: 4px;
+        }
+
+        .cookie-field input[type="text"] {
+            width: 100%;
+            padding: 12px 15px;
+            font-size: 13px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            transition: all 0.3s;
+            font-family: 'Courier New', monospace;
+        }
+
+        .cookie-field input[type="text"]:focus {
+            border-color: #ff9800;
+            box-shadow: 0 0 0 3px rgba(255, 152, 0, 0.1);
+        }
+
+        .cookie-help {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 3px solid #2196f3;
+            margin-top: 15px;
+        }
+
+        .cookie-help-title {
+            font-weight: 600;
+            color: #1565c0;
+            margin-bottom: 10px;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .cookie-help ol {
+            margin-left: 20px;
+            color: #1976d2;
+            font-size: 13px;
+            line-height: 1.8;
+        }
+
+        .cookie-help code {
+            background: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 12px;
+            color: #d63384;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: #667eea;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .result {
+            display: none;
+            margin-top: 30px;
+            animation: slideIn 0.5s;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .result.show {
+            display: block;
+        }
+
+        .video-info {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border-left: 4px solid #667eea;
+        }
+
+        .video-info h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+
+        .info-item {
+            margin-bottom: 10px;
+            color: #555;
+            line-height: 1.6;
+        }
+
+        .info-label {
+            font-weight: 600;
+            color: #667eea;
+            display: inline-block;
+            min-width: 80px;
+        }
+
+        .subtitle-box {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        .subtitle-box h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        #subtitleText {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+            max-height: 400px;
+            overflow-y: auto;
+            line-height: 1.8;
+            color: #333;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-size: 15px;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        .copy-btn {
+            padding: 8px 16px;
+            font-size: 14px;
+            background: #28a745;
+        }
+
+        .download-btn {
+            padding: 8px 16px;
+            font-size: 14px;
+            background: #17a2b8;
+        }
+
+        .error {
+            background: #fee;
+            color: #c33;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            border-left: 4px solid #c33;
+            display: none;
+        }
+
+        .error.show {
+            display: block;
+        }
+
+        .example {
+            background: linear-gradient(135deg, #e7f3ff 0%, #d4e9ff 100%);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 14px;
+            color: #0066cc;
+            border-left: 4px solid #0066cc;
+        }
+
+        .example strong {
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .example code {
+            background: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            display: block;
+            margin-top: 5px;
+            color: #333;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+
+        .success-toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #28a745;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            display: none;
+            animation: slideInRight 0.3s;
+            z-index: 1000;
+        }
+
+        @keyframes slideInRight {
+            from { transform: translateX(400px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .success-toast.show {
+            display: block;
+        }
+
+        .subtitle-list {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        .subtitle-list h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+
+        .subtitle-item {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 2px solid #e0e0e0;
+            transition: all 0.3s;
+        }
+
+        .subtitle-item:hover {
+            border-color: #667eea;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+        }
+
+        .subtitle-info {
+            flex: 1;
+        }
+
+        .subtitle-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .subtitle-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+
+        .badge-ai {
+            background: #d4edff;
+            color: #0066cc;
+        }
+
+        .badge-manual {
+            background: #d4f4dd;
+            color: #28a745;
+        }
+
+        .badge-recommend {
+            background: #ffd700;
+            color: #856404;
+        }
+
+        .subtitle-meta {
+            font-size: 13px;
+            color: #666;
+        }
+
+        .subtitle-item button {
+            padding: 8px 20px;
+            font-size: 14px;
+            margin-left: 10px;
+        }
+
+        .download-all-btn {
+            width: 100%;
+            margin-top: 15px;
+            background: #17a2b8;
+        }
+
+        .download-all-btn:hover:not(:disabled) {
+            background: #138496;
+        }
+
+        .version-tag {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-left: 10px;
+            vertical-align: middle;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>B站视频ASR文本提取工具 <span class="version-tag">v2.3</span></h1>
+        <p class="subtitle-text">快速提取B站视频的字幕和ASR文本 · 已修复定时器混乱</p>
+
+        <div class="cookie-section">
+            <h4>🔐 需要B站登录Cookie才能获取字幕</h4>
+
+            <button class="toggle-cookie" onclick="toggleCookie()">📝 点击展开Cookie设置</button>
+
+            <div class="cookie-input" id="cookieInput">
+                <div class="cookie-field">
+                    <label>🎫 SESSDATA<span>*</span></label>
+                    <input type="text" id="sessdata" placeholder="例如：15faff37%2C1784958831%2C0431%2A11CjBUf..." />
+                </div>
+
+                <div class="cookie-field">
+                    <label>🔑 bili_jct<span>*</span></label>
+                    <input type="text" id="bili_jct" placeholder="例如：a1b2c3d4e5f6..." />
+                </div>
+
+                <div class="cookie-field">
+                    <label>👤 DedeUserID<span>*</span></label>
+                    <input type="text" id="dedeuserid" placeholder="例如：2136378398" />
+                </div>
+
+                <div class="cookie-help">
+                    <div class="cookie-help-title">💡 如何获取这三个Cookie值？</div>
+                    <ol>
+                        <li>在浏览器中打开 <strong>B站首页</strong> 并 <strong>登录账号</strong></li>
+                        <li>按键盘 <code>F12</code> 打开开发者工具</li>
+                        <li>点击顶部的 <code>Application</code> 标签（如果看不到，点击 <code>>></code> 展开）</li>
+                        <li>左侧展开 <code>Cookies</code> → 点击 <code>https://www.bilibili.com</code></li>
+                        <li>在右侧列表中找到上面三个Cookie名称，复制它们的 <strong>Value</strong> 值</li>
+                        <li>分别粘贴到上面对应的输入框中</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+
+        <div class="input-section">
+            <div class="input-group">
+                <input
+                    type="text"
+                    id="videoUrl"
+                    placeholder="粘贴B站视频链接，例如：https://www.bilibili.com/video/BV1XkAne1Ew1/"
+                    autofocus
+                >
+                <button id="extractBtn" onclick="extractASR()">提取文本</button>
+            </div>
+
+            <div class="example">
+                <strong>✨ 支持的链接格式：</strong>
+                <code>https://www.bilibili.com/video/BV1XkAne1Ew1/</code>
+                <code>BV1XkAne1Ew1</code>
+            </div>
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>正在提取字幕，请稍候...</p>
+        </div>
+
+        <div class="error" id="error"></div>
+
+        <div class="result" id="result">
+            <div class="video-info">
+                <h3>📹 视频信息</h3>
+                <div class="info-item">
+                    <span class="info-label">标题：</span>
+                    <span id="videoTitle"></span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">UP主：</span>
+                    <span id="videoAuthor"></span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">BV号：</span>
+                    <span id="videoBvid"></span>
+                </div>
+            </div>
+
+            <div class="subtitle-list" id="subtitleList"></div>
+
+            <div class="subtitle-box">
+                <h3>
+                    <span>📝 字幕文本 <span id="subtitleLang"></span></span>
+                    <div class="btn-group">
+                        <button class="copy-btn" onclick="copyText()">📋 复制</button>
+                        <button class="download-btn" onclick="downloadText()">💾 下载</button>
+                    </div>
+                </h3>
+                <div id="subtitleText"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="success-toast" id="toast">操作成功！</div>
+
+    <script>
+        // 全局变量
+        window.currentVideoData = null;
+        window.subtitleCache = {};
+        window.pendingTimers = [];  // 🔥 追踪所有定时器
+
+        // 清空所有内容的通用函数
+        function clearAllContent() {
+            console.log('🧹 开始彻底清空...');
+
+            // 🔥 取消所有pending的定时器
+            if (window.pendingTimers && window.pendingTimers.length > 0) {
+                console.log('🚫 取消', window.pendingTimers.length, '个pending定时器');
+                window.pendingTimers.forEach(timer => clearTimeout(timer));
+                window.pendingTimers = [];
+            }
+
+            // 清空结果区域的DOM
+            const subtitleTextEl = document.getElementById('subtitleText');
+            const subtitleLangEl = document.getElementById('subtitleLang');
+            const videoTitleEl = document.getElementById('videoTitle');
+            const videoAuthorEl = document.getElementById('videoAuthor');
+            const videoBvidEl = document.getElementById('videoBvid');
+            const subtitleListEl = document.getElementById('subtitleList');
+
+            if (subtitleTextEl) subtitleTextEl.innerHTML = '';
+            if (subtitleLangEl) subtitleLangEl.textContent = '';
+            if (videoTitleEl) videoTitleEl.textContent = '';
+            if (videoAuthorEl) videoAuthorEl.textContent = '';
+            if (videoBvidEl) videoBvidEl.textContent = '';
+            if (subtitleListEl) subtitleListEl.innerHTML = '';
+
+            document.getElementById('result').classList.remove('show');
+            document.querySelector('.subtitle-box').style.display = 'none';
+
+            // 清空全局数据
+            window.currentVideoData = null;
+            window.subtitleCache = {};
+            window.currentSubtitle = null;
+
+            console.log('✅ 已清空所有旧内容');
+        }
+
+        // 页面加载时初始化
+        window.addEventListener('DOMContentLoaded', function() {
+            // 加载cookie
+            const savedSessdata = localStorage.getItem('bili_sessdata');
+            const savedBiliJct = localStorage.getItem('bili_jct');
+            const savedDedeUserID = localStorage.getItem('bili_dedeuserid');
+
+            if (savedSessdata) document.getElementById('sessdata').value = savedSessdata;
+            if (savedBiliJct) document.getElementById('bili_jct').value = savedBiliJct;
+            if (savedDedeUserID) document.getElementById('dedeuserid').value = savedDedeUserID;
+
+            // 清空所有残留内容
+            clearAllContent();
+        });
+
+        function toggleCookie() {
+            const cookieInput = document.getElementById('cookieInput');
+            cookieInput.classList.toggle('show');
+        }
+
+        function getCookie() {
+            const sessdata = document.getElementById('sessdata').value.trim();
+            const bili_jct = document.getElementById('bili_jct').value.trim();
+            const dedeuserid = document.getElementById('dedeuserid').value.trim();
+
+            if (sessdata && bili_jct && dedeuserid) {
+                // 保存到localStorage
+                localStorage.setItem('bili_sessdata', sessdata);
+                localStorage.setItem('bili_jct', bili_jct);
+                localStorage.setItem('bili_dedeuserid', dedeuserid);
+
+                return `SESSDATA=${sessdata};bili_jct=${bili_jct};DedeUserID=${dedeuserid}`;
+            } else if (sessdata || bili_jct || dedeuserid) {
+                showError('❌ 请填写完整的三个Cookie字段');
+                return '';
+            }
+            return '';
+        }
+
+        // 回车键提交
+        document.getElementById('videoUrl').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                extractASR();
+            }
+        });
+
+        async function extractASR() {
+            const url = document.getElementById('videoUrl').value.trim();
+            const cookie = getCookie();
+            const loading = document.getElementById('loading');
+            const error = document.getElementById('error');
+            const extractBtn = document.getElementById('extractBtn');
+
+            if (!url) {
+                showError('请输入B站视频链接');
+                return;
+            }
+
+            if (cookie) {
+                localStorage.setItem('bilibiliCookie', cookie);
+            }
+
+            // 🔥 强制清空所有旧内容（防止显示上一次的字幕）
+            console.log('🧹 开始清空旧内容...');
+            clearAllContent();
+
+            // 显示加载状态
+            loading.classList.add('show');
+            error.classList.remove('show');
+            extractBtn.disabled = true;
+
+            try {
+                const response = await fetch('/api/extract', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Cache-Control': 'no-cache, no-store, must-revalidate',
+                        'Pragma': 'no-cache',
+                        'Expires': '0'
+                    },
+                    body: JSON.stringify({
+                        url: url,
+                        cookie: cookie
+                    })
+                });
+
+                const data = await response.json();
+
+                loading.classList.remove('show');
+                extractBtn.disabled = false;
+
+                if (data.success) {
+                    // 🔥 再次确保清空，防止异步问题
+                    window.currentVideoData = null;
+                    window.subtitleCache = {};
+
+                    console.log('📦 收到新视频数据:', data.bvid, data.video_info.title);
+                    console.log('📝 字幕列表:', data.subtitles.map(s => s.lan_doc).join(', '));
+
+                    // 保存新视频数据
+                    window.currentVideoData = {
+                        bvid: data.bvid,
+                        title: data.video_info.title,
+                        author: data.video_info.author,
+                        subtitles: data.subtitles,
+                        cookie: cookie
+                    };
+
+                    // 显示视频信息
+                    document.getElementById('videoTitle').textContent = data.video_info.title;
+                    document.getElementById('videoAuthor').textContent = data.video_info.author;
+                    document.getElementById('videoBvid').textContent = data.bvid;
+
+                    // 显示字幕列表
+                    displaySubtitleList(data.subtitles);
+
+                    result.classList.add('show');
+
+                    // 如果只有一个字幕，自动加载
+                    if (data.subtitles.length === 1) {
+                        console.log('🎯 只有1个字幕，自动加载');
+                        const timer1 = setTimeout(() => selectSubtitle(0), 300);
+                        window.pendingTimers.push(timer1);
+                    }
+
+                    const timer2 = setTimeout(() => {
+                        result.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    }, 100);
+                    window.pendingTimers.push(timer2);
+                } else {
+                    showError(data.error || '提取失败');
+                }
+            } catch (err) {
+                loading.classList.remove('show');
+                extractBtn.disabled = false;
+                showError('网络错误或服务器未响应，请确保已启动服务');
+                console.error('Error:', err);
+            }
+        }
+
+        function displaySubtitleList(subtitles) {
+            const listContainer = document.getElementById('subtitleList');
+
+            let html = `<h3>📚 可用字幕 (${subtitles.length}个)</h3>`;
+
+            subtitles.forEach((sub, index) => {
+                const icon = sub.is_ai ? '🤖' : '✍️';
+                const badge = sub.is_ai
+                    ? '<span class="subtitle-badge badge-ai">AI生成</span>'
+                    : '<span class="subtitle-badge badge-manual">手动上传</span>';
+
+                const recommendBadge = (index === 0 && sub.is_ai)
+                    ? '<span class="subtitle-badge badge-recommend">推荐</span>'
+                    : '';
+
+                html += `
+                    <div class="subtitle-item">
+                        <div class="subtitle-info">
+                            <div class="subtitle-name">
+                                ${icon} ${sub.lan_doc}
+                                ${badge}
+                                ${recommendBadge}
+                            </div>
+                            <div class="subtitle-meta">${sub.lan}</div>
+                        </div>
+                        <button onclick="selectSubtitle(${index})">查看</button>
+                    </div>
+                `;
+            });
+
+            if (subtitles.length > 1) {
+                html += '<button class="download-all-btn" onclick="downloadAllSubtitles()">📥 下载所有字幕</button>';
+            }
+
+            listContainer.innerHTML = html;
+        }
+
+        async function selectSubtitle(index) {
+            const videoData = window.currentVideoData;
+            if (!videoData || !videoData.subtitles[index]) {
+                showError('字幕数据错误');
+                console.error('❌ 字幕数据错误:', videoData, index);
+                return;
+            }
+
+            const subtitle = videoData.subtitles[index];
+            const subtitleBox = document.querySelector('.subtitle-box');
+            const loading = document.getElementById('loading');
+
+            console.log('🎬 开始加载字幕 -', '视频:', videoData.bvid, '语言:', subtitle.lan_doc);
+            console.log('📍 字幕URL:', subtitle.subtitle_url);
+
+            // 先清空旧字幕内容，避免显示上一个字幕
+            document.getElementById('subtitleText').innerHTML = '<p style="color: #999; text-align: center; padding: 20px;">正在加载字幕...</p>';
+            document.getElementById('subtitleLang').textContent = '';
+            subtitleBox.style.display = 'block';
+
+            // 检查缓存
+            if (window.subtitleCache[subtitle.subtitle_url]) {
+                console.log('💾 使用缓存字幕');
+                displaySubtitleText(window.subtitleCache[subtitle.subtitle_url], subtitle.lan_doc);
+                return;
+            }
+
+            loading.classList.add('show');
+            loading.querySelector('p').textContent = `正在加载 ${subtitle.lan_doc} 字幕...`;
+
+            try {
+                const response = await fetch('/api/download-subtitle', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Cache-Control': 'no-cache, no-store, must-revalidate',
+                        'Pragma': 'no-cache',
+                        'Expires': '0'
+                    },
+                    body: JSON.stringify({
+                        subtitle_url: subtitle.subtitle_url,
+                        cookie: videoData.cookie
+                    })
+                });
+
+                const data = await response.json();
+
+                loading.classList.remove('show');
+                loading.querySelector('p').textContent = '正在提取字幕，请稍候...';
+
+                if (data.success) {
+                    console.log('✅ 字幕下载成功，前50字:', data.text.substring(0, 50));
+
+                    // 缓存字幕
+                    window.subtitleCache[subtitle.subtitle_url] = {
+                        text: data.text,
+                        data: data.data,
+                        lang_doc: subtitle.lan_doc,
+                        bvid: videoData.bvid  // 🔥 记录所属视频
+                    };
+
+                    displaySubtitleText(window.subtitleCache[subtitle.subtitle_url], subtitle.lan_doc);
+                } else {
+                    console.error('❌ 字幕下载失败:', data.error);
+                    showError('加载字幕失败');
+                }
+            } catch (err) {
+                loading.classList.remove('show');
+                showError('网络错误');
+                console.error('Error:', err);
+            }
+        }
+
+        function displaySubtitleText(subtitleData, langDoc) {
+            // 🔥 验证：确保当前视频数据存在且匹配
+            if (!window.currentVideoData) {
+                console.error('❌ 无视频数据，跳过显示字幕');
+                return;
+            }
+
+            // 如果字幕数据带有bvid，验证是否匹配当前视频
+            if (subtitleData.bvid && subtitleData.bvid !== window.currentVideoData.bvid) {
+                console.warn('⚠️ 字幕所属视频不匹配，跳过显示', {
+                    subtitle_bvid: subtitleData.bvid,
+                    current_bvid: window.currentVideoData.bvid
+                });
+                return;
+            }
+
+            const subtitleBox = document.querySelector('.subtitle-box');
+
+            console.log('📺 显示字幕 -', '视频:', window.currentVideoData.bvid, '语言:', langDoc);
+
+            // 先清空再设置，确保DOM更新
+            const subtitleTextEl = document.getElementById('subtitleText');
+            const subtitleLangEl = document.getElementById('subtitleLang');
+
+            subtitleTextEl.textContent = '';  // 先清空
+            subtitleLangEl.textContent = '';
+
+            // 强制DOM刷新
+            void subtitleTextEl.offsetHeight;
+
+            // 设置新内容
+            subtitleLangEl.textContent = `(${langDoc})`;
+            subtitleTextEl.textContent = subtitleData.text;
+
+            window.currentSubtitle = {
+                text: subtitleData.text,
+                bvid: window.currentVideoData.bvid,
+                title: window.currentVideoData.title,
+                lang: langDoc
+            };
+
+            subtitleBox.style.display = 'block';
+
+            const timer = setTimeout(() => {
+                subtitleBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }, 100);
+            window.pendingTimers.push(timer);
+        }
+
+        async function downloadAllSubtitles() {
+            const videoData = window.currentVideoData;
+            if (!videoData) return;
+
+            const loading = document.getElementById('loading');
+            loading.classList.add('show');
+            loading.querySelector('p').textContent = '正在下载所有字幕...';
+
+            const allTexts = [];
+
+            for (let i = 0; i < videoData.subtitles.length; i++) {
+                const subtitle = videoData.subtitles[i];
+
+                try {
+                    let subtitleData;
+
+                    // 检查缓存
+                    if (window.subtitleCache[subtitle.subtitle_url]) {
+                        subtitleData = window.subtitleCache[subtitle.subtitle_url];
+                    } else {
+                        const response = await fetch('/api/download-subtitle', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                subtitle_url: subtitle.subtitle_url,
+                                cookie: videoData.cookie
+                            })
+                        });
+
+                        const data = await response.json();
+                        if (data.success) {
+                            subtitleData = {
+                                text: data.text,
+                                lang_doc: subtitle.lan_doc
+                            };
+                            window.subtitleCache[subtitle.subtitle_url] = subtitleData;
+                        }
+                    }
+
+                    if (subtitleData) {
+                        allTexts.push(`========== ${subtitleData.lang_doc} ==========\n${subtitleData.text}`);
+                    }
+                } catch (err) {
+                    console.error(`下载字幕 ${subtitle.lan_doc} 失败:`, err);
+                }
+            }
+
+            loading.classList.remove('show');
+            loading.querySelector('p').textContent = '正在提取字幕，请稍候...';
+
+            if (allTexts.length > 0) {
+                const combinedText = allTexts.join('\n\n');
+                displaySubtitleText({ text: combinedText }, '所有字幕');
+                showToast(`✅ 已加载 ${allTexts.length} 个字幕`);
+            } else {
+                showError('下载所有字幕失败');
+            }
+        }
+
+        function showError(message) {
+            const error = document.getElementById('error');
+            error.textContent = '❌ ' + message;
+            error.classList.add('show');
+            setTimeout(() => {
+                error.classList.remove('show');
+            }, 5000);
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2000);
+        }
+
+        function copyText() {
+            const text = document.getElementById('subtitleText').textContent;
+
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(() => {
+                    showToast('✅ 已复制到剪贴板！');
+                }).catch(() => {
+                    fallbackCopy(text);
+                });
+            } else {
+                fallbackCopy(text);
+            }
+        }
+
+        function fallbackCopy(text) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                document.execCommand('copy');
+                showToast('✅ 已复制到剪贴板！');
+            } catch (err) {
+                showError('复制失败，请手动复制');
+            }
+            document.body.removeChild(textarea);
+        }
+
+        function downloadText() {
+            if (!window.currentSubtitle) {
+                showError('没有可下载的内容');
+                return;
+            }
+
+            const { text, bvid, title } = window.currentSubtitle;
+            const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+
+            // 清理文件名中的非法字符
+            const safeTitle = title.replace(/[<>:"/\\|?*]/g, '_').substring(0, 50);
+            a.href = url;
+            a.download = `${safeTitle}_${bvid}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            showToast('✅ 文件下载成功！');
+        }
+    </script>
+</body>
+</html>

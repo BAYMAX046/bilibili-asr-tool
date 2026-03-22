@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cookie测试工具</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .box {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .step {
+            background: #e7f3ff;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 8px;
+            border-left: 4px solid #0066cc;
+        }
+        .step h3 {
+            color: #0066cc;
+            margin-bottom: 10px;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            margin-top: 15px;
+        }
+        button:hover {
+            background: #5568d3;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            font-family: monospace;
+            word-break: break-all;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .warning {
+            background: #fff3cd;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #ffc107;
+            color: #856404;
+            margin-top: 15px;
+        }
+        code {
+            background: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            color: #d63384;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <h1>🍪 B站Cookie获取教程</h1>
+
+        <div class="step">
+            <h3>步骤1：打开B站并登录</h3>
+            <p>访问 <a href="https://www.bilibili.com" target="_blank">https://www.bilibili.com</a> 并确保已登录</p>
+        </div>
+
+        <div class="step">
+            <h3>步骤2：打开开发者工具</h3>
+            <p>按键盘 <code>F12</code> 键打开开发者工具</p>
+        </div>
+
+        <div class="step">
+            <h3>步骤3：切换到Application标签</h3>
+            <p>在开发者工具顶部找到 <code>Application</code>（或 <code>应用程序</code>）标签并点击</p>
+            <p style="margin-top:8px; color:#666; font-size:13px;">如果找不到，可能叫 <code>存储</code> 或 <code>Storage</code></p>
+        </div>
+
+        <div class="step">
+            <h3>步骤4：找到Cookies</h3>
+            <p>在左侧展开 <code>Cookies</code> → 点击 <code>https://www.bilibili.com</code></p>
+        </div>
+
+        <div class="step">
+            <h3>步骤5：找到关键Cookie</h3>
+            <p>在右侧表格中找到这些Cookie并记录它们的值：</p>
+            <ul style="margin-left: 20px; margin-top: 10px;">
+                <li><code>SESSDATA</code> ← 最重要！</li>
+                <li><code>bili_jct</code></li>
+                <li><code>DedeUserID</code></li>
+            </ul>
+        </div>
+
+        <div class="step">
+            <h3>步骤6：快速获取（推荐）</h3>
+            <p><strong>你现在在B站页面吗？</strong> 如果是，点击下面的按钮自动获取：</p>
+            <button onclick="getCookie()">自动获取当前页面的Cookie</button>
+            <div id="cookieResult" class="result" style="display:none;"></div>
+        </div>
+
+        <div class="warning">
+            <strong>⚠️ 注意事项：</strong>
+            <ul style="margin-left: 20px; margin-top: 8px;">
+                <li>Cookie包含你的登录凭证，<strong>不要分享给他人</strong></li>
+                <li>如果自动获取失败，请在B站页面打开此HTML文件</li>
+                <li>Cookie会过期，如果提取失败可能需要重新获取</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        function getCookie() {
+            const cookie = document.cookie;
+            const resultDiv = document.getElementById('cookieResult');
+
+            if (!cookie) {
+                resultDiv.innerHTML = '<span style="color:red;">❌ 未获取到Cookie！<br>请确保：<br>1. 你在B站页面打开此文件<br>2. 已经登录B站账号</span>';
+                resultDiv.style.display = 'block';
+                return;
+            }
+
+            // 检查是否包含关键字段
+            const hasSESSDATA = cookie.includes('SESSDATA');
+            const hasBiliJct = cookie.includes('bili_jct');
+            const hasDedeUserID = cookie.includes('DedeUserID');
+
+            let status = '';
+            if (hasSESSDATA && hasBiliJct && hasDedeUserID) {
+                status = '<span style="color:green;">✅ Cookie完整！包含所有关键字段</span><br><br>';
+            } else {
+                status = '<span style="color:orange;">⚠️ Cookie可能不完整</span><br>';
+                status += `SESSDATA: ${hasSESSDATA ? '✓' : '✗'}<br>`;
+                status += `bili_jct: ${hasBiliJct ? '✓' : '✗'}<br>`;
+                status += `DedeUserID: ${hasDedeUserID ? '✓' : '✗'}<br><br>`;
+            }
+
+            resultDiv.innerHTML = status + '<strong>你的Cookie：</strong><br>' + cookie;
+            resultDiv.style.display = 'block';
+
+            // 自动复制到剪贴板
+            navigator.clipboard.writeText(cookie).then(() => {
+                alert('✅ Cookie已复制到剪贴板！\n现在可以粘贴到提取工具中使用了。');
+            }).catch(() => {
+                alert('请手动复制上面显示的Cookie');
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "name": "bilibili-asr-extractor",
+  "version": "1.0.0",
+  "description": "B站视频ASR文本提取工具",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "multer": "^2.1.1",
+    "ali-oss": "^6.21.0",
+    "dotenv": "^16.0.3"
+  }
+}

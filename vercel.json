@@ -1,0 +1,21 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "server.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "server.js"
+    }
+  ],
+  "env": {
+    "OSS_REGION": "@oss_region",
+    "OSS_ACCESS_KEY_ID": "@oss_access_key_id",
+    "OSS_ACCESS_KEY_SECRET": "@oss_access_key_secret",
+    "OSS_BUCKET": "@oss_bucket"
+  }
+}
