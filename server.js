@@ -529,7 +529,10 @@ app.post('/api/videoshot', async (req, res) => {
         }
 
         if (!ffmpegAvailable) {
-            return res.json({ success: false, error: 'FFmpeg未安装，无法截帧。请安装FFmpeg并重启服务。' });
+            const message = process.env.VERCEL
+                ? '☁️ 云端部署不支持截帧功能（需要 FFmpeg）。请在本地版本中使用此功能。'
+                : '❌ FFmpeg 未安装，无法截帧。请安装 FFmpeg：https://www.gyan.dev/ffmpeg/builds/';
+            return res.json({ success: false, error: message });
         }
 
         if (!subtitleTimestamps || subtitleTimestamps.length === 0) {
@@ -866,10 +869,13 @@ function escapeHtml(str) {
 
 // 启动服务器
 async function startServer() {
-    // 检测FFmpeg
+    // 检测FFmpeg（Vercel上可能不可用）
     const hasFFmpeg = await checkFfmpeg();
 
-    app.listen(PORT, '127.0.0.1', () => {
+    // Vercel 需要监听所有地址
+    const host = process.env.VERCEL ? '0.0.0.0' : '127.0.0.1';
+
+    app.listen(PORT, host, () => {
         console.log('='.repeat(60));
         console.log('B站视频ASR文本提取工具 - Node.js版');
         console.log('='.repeat(60));
@@ -879,7 +885,9 @@ async function startServer() {
             console.log('🎬 FFmpeg 已检测到 — 精确截帧功能可用');
         } else {
             console.log('⚠️  FFmpeg 未安装 — 截帧功能不可用（字幕功能正常）');
-            console.log('   安装方法: 下载 https://www.gyan.dev/ffmpeg/builds/ 并加入PATH');
+            if (!process.env.VERCEL) {
+                console.log('   安装方法: 下载 https://www.gyan.dev/ffmpeg/builds/ 并加入PATH');
+            }
         }
         console.log('按 Ctrl+C 停止服务');
         console.log('='.repeat(60));
