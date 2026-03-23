@@ -8,8 +8,28 @@
   ],
   "routes": [
     {
+      "src": "/api/(.*)",
+      "dest": "/server.js"
+    },
+    {
+      "src": "/share/(.*)",
+      "dest": "/server.js"
+    },
+    {
+      "src": "/(.*\\.)(jpg|jpeg|gif|png|webp|svg|ico|css|txt)$",
+      "dest": "/$1$2"
+    },
+    {
+      "src": "/(.*\\.js)$",
+      "dest": "/$1"
+    },
+    {
+      "src": "/",
+      "dest": "/index.html"
+    },
+    {
       "src": "/(.*)",
-      "dest": "server.js"
+      "dest": "/index.html"
     }
   ]
 }
