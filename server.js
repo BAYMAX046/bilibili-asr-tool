@@ -894,4 +894,10 @@ async function startServer() {
     });
 }
 
-startServer();
+// 本地运行
+if (!process.env.VERCEL) {
+    startServer();
+}
+
+// Vercel 无服务器函数导出
+module.exports = app;
