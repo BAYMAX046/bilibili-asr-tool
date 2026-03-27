@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>B站视频ASR文本提取工具</title>
+    <title>B站视频ASR提取&成片效果分析工具</title>
     <style>
         * {
             margin: 0;
@@ -901,8 +901,8 @@
 </head>
 <body>
     <div class="container">
-        <h1>B站视频ASR文本提取工具 <span class="version-tag">v4.0</span></h1>
-        <p class="subtitle-text">快速提取B站视频的字幕和ASR文本 · 多视频截帧对照 · 排名打标</p>
+        <h1>B站视频ASR提取&成片效果分析工具 <span class="version-tag">v4.0</span></h1>
+        <p class="subtitle-text">快速提取B站视频的字幕和ASR文本 · 多视频截帧对照 · 成片效果分析</p>
 
         <div class="cookie-section">
             <h4>🔐 需要B站登录Cookie才能获取字幕</h4>
@@ -1345,7 +1345,9 @@
                 cookie: item.cookie || ''
             };
             // 显示视频信息
-            document.getElementById('videoTitle').textContent = item.title;
+            const vtEl2 = document.getElementById('videoTitle');
+            vtEl2.textContent = item.title;
+            vtEl2.style.color = '';
             document.getElementById('videoAuthor').textContent = item.author;
             document.getElementById('videoBvid').textContent = item.bvid;
             document.getElementById('result').classList.add('show');
@@ -1438,13 +1440,17 @@
 
                 if (subtitleTextEl) subtitleTextEl.innerHTML = '';
                 if (subtitleLangEl) subtitleLangEl.textContent = '';
-                if (videoTitleEl) videoTitleEl.textContent = '';
-                if (videoAuthorEl) videoAuthorEl.textContent = '';
-                if (videoBvidEl) videoBvidEl.textContent = '';
-                if (subtitleListEl) subtitleListEl.innerHTML = '';
+                if (videoTitleEl) { videoTitleEl.textContent = '请先输入B站视频链接并点击"提取文本"'; videoTitleEl.style.color = '#999'; }
+                if (videoAuthorEl) videoAuthorEl.textContent = '-';
+                if (videoBvidEl) videoBvidEl.textContent = '-';
+                if (subtitleListEl) subtitleListEl.innerHTML = '<p style="color:#999;font-size:13px;padding:10px 0;">暂无字幕数据，请先提取视频</p>';
 
-                document.getElementById('result').classList.remove('show');
-                document.querySelector('.subtitle-box').style.display = 'none';
+                // 始终显示结果区域
+                document.getElementById('result').classList.add('show');
+                // 显示字幕框但带提示
+                const subtitleBox = document.querySelector('.subtitle-box');
+                subtitleBox.style.display = 'block';
+                if (subtitleTextEl) subtitleTextEl.innerHTML = '<p style="color:#999;font-size:13px;">请先选择一个字幕查看内容</p>';
             } catch (e) { console.warn('清空结果区域出错:', e); }
 
             // 清空截帧区域
@@ -1452,15 +1458,17 @@
                 const frameSectionEl = document.getElementById('frameSection');
                 const frameContainerEl = document.getElementById('frameContainer');
                 const frameLoadingEl = document.getElementById('frameLoading');
-                if (frameSectionEl) frameSectionEl.classList.remove('show');
-                if (frameContainerEl) frameContainerEl.innerHTML = '';
+                // 始终显示截帧区域
+                if (frameSectionEl) frameSectionEl.classList.add('show');
+                if (frameContainerEl) frameContainerEl.innerHTML = '<p style="color:#999;font-size:13px;padding:20px 0;text-align:center;">请先上传视频并点击"开始截帧对比"</p>';
                 if (frameLoadingEl) frameLoadingEl.style.display = 'none';
             } catch (e) { console.warn('清空截帧区域出错:', e); }
 
             // 清空上传区域
             try {
                 const uploadSection = document.getElementById('uploadSection');
-                if (uploadSection) uploadSection.classList.remove('show');
+                // 始终显示上传区域
+                if (uploadSection) uploadSection.classList.add('show');
                 const uploadedList = document.getElementById('uploadedList');
                 if (uploadedList) uploadedList.innerHTML = '';
                 const startFrameBtn = document.getElementById('startFrameBtn');
@@ -1527,7 +1535,9 @@
             };
 
             // 显示视频信息
-            document.getElementById('videoTitle').textContent = historyItem.title;
+            const vtEl3 = document.getElementById('videoTitle');
+            vtEl3.textContent = historyItem.title;
+            vtEl3.style.color = '';
             document.getElementById('videoAuthor').textContent = historyItem.author;
             document.getElementById('videoBvid').textContent = lastBvid;
             document.getElementById('result').classList.add('show');
@@ -1668,7 +1678,9 @@
                     };
 
                     // 显示视频信息
-                    document.getElementById('videoTitle').textContent = data.video_info.title;
+                    const vtEl = document.getElementById('videoTitle');
+                    vtEl.textContent = data.video_info.title;
+                    vtEl.style.color = '';
                     document.getElementById('videoAuthor').textContent = data.video_info.author;
                     document.getElementById('videoBvid').textContent = data.bvid;
 
