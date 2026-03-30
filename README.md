@@ -1,41 +1,74 @@
-# B站视频ASR文本提取工具
+# B站视频ASR提取&成片效果分析工具
 
-一个简单易用的Web应用，可以快速提取B站视频的字幕和ASR（自动语音识别）文本。
+一个功能丰富的Web应用，支持提取B站视频字幕/ASR文本、多视频截帧对照、排名打标，并可导出HTML对比文档。
 
 ## 功能特点
 
-- 🎯 支持多种B站链接格式
-- 📝 自动提取视频字幕文本
-- 💻 美观的Web界面
-- 📋 一键复制文本功能
-- ⚡ 快速响应，操作简单
+- **字幕提取**：自动提取B站视频的字幕和ASR（自动语音识别）文本
+- **多视频截帧对照**：上传最多2个本地视频，按字幕时间点自动截帧，多列对照展示
+- **排名打标**：对每行截帧进行1/2/3排名，自动计算Best最优视频
+- **列名编辑**：双击列头可自定义视频名称
+- **备注功能**：每行可添加备注说明
+- **导出HTML**：一键导出包含GSB对比总结、排名、备注的完整HTML文档
+- **阿里云OSS**：视频和导出文件自动上传至阿里云OSS存储
+- **FFmpeg截帧**：支持精确时间点截帧（需安装FFmpeg）
+- **会话恢复**：刷新页面后自动恢复上次的工作状态
+
+## 技术栈
+
+- **后端**：Node.js + Express
+- **前端**：HTML + CSS + JavaScript（单页应用）
+- **存储**：阿里云OSS
+- **截帧**：FFmpeg
+- **API**：B站官方API
 
 ## 安装步骤
 
-### 1. 安装Python依赖
+### 1. 安装 Node.js
 
-确保你已经安装了Python 3.7或更高版本，然后运行：
+确保已安装 Node.js 18 或更高版本。
+
+### 2. 安装 FFmpeg（可选，用于截帧功能）
+
+- Windows：从 https://www.gyan.dev/ffmpeg/builds/ 下载并添加到 PATH
+- Linux：`apt install -y ffmpeg`
+
+### 3. 安装依赖
 
 ```bash
-pip install -r requirements.txt
+npm install
 ```
 
-### 2. 启动服务
+### 4. 配置环境变量
+
+创建 `.env` 文件：
+
+```env
+OSS_REGION=oss-cn-shanghai
+OSS_ACCESS_KEY_ID=你的AccessKeyID
+OSS_ACCESS_KEY_SECRET=你的AccessKeySecret
+OSS_BUCKET=你的Bucket名称
+PORT=5000
+```
+
+### 5. 启动服务
 
 ```bash
-python app.py
+node server.js
 ```
-
-### 3. 访问网站
 
 在浏览器中打开：http://localhost:5000
 
 ## 使用方法
 
-1. 在输入框中粘贴B站视频链接
-2. 点击"提取文本"按钮
-3. 等待几秒钟，即可看到视频信息和字幕文本
-4. 点击"复制文本"按钮即可复制所有字幕内容
+1. **设置Cookie**：点击"Cookie设置"，输入B站登录Cookie（SESSDATA、bili_jct、DedeUserID）
+2. **提取字幕**：粘贴B站视频链接，点击"提取文本"
+3. **查看字幕**：从字幕列表中选择一个查看，支持复制和下载
+4. **上传视频**：上传最多2个本地视频进行对比
+5. **截帧对比**：点击"开始截帧对比"，按字幕时间点自动截帧
+6. **排名打标**：点击每个帧图下方的1/2/3按钮进行排名
+7. **添加备注**：在备注列中输入对比说明
+8. **导出文档**：点击"导出HTML文档"生成完整的对比报告
 
 ## 支持的链接格式
 
@@ -43,44 +76,71 @@ python app.py
 - BV号：`BV1XkAne1Ew1`
 - 短链接：`https://b23.tv/xxxxx`
 
-## 注意事项
-
-- 仅支持有字幕的视频
-- 某些视频可能没有ASR文本或字幕
-- 需要网络连接才能访问B站API
-
-## 技术栈
-
-- 后端：Python + Flask
-- 前端：HTML + CSS + JavaScript
-- API：B站官方API
-
 ## 目录结构
 
 ```
-B站视频下载/
-├── app.py              # Flask后端服务
-├── requirements.txt    # Python依赖
-├── README.md          # 说明文档
-└── templates/
-    └── index.html     # 前端页面
+bilibili-asr-tool/
+├── server.js           # Node.js后端服务（Express）
+├── index.html          # 前端页面（单文件SPA）
+├── package.json        # Node.js依赖配置
+├── .env                # 环境变量配置（需自行创建）
+├── uploads/            # 临时上传文件目录
+├── exports/            # 导出HTML文件目录
+└── README.md           # 说明文档
+```
+
+## 部署
+
+### 本地运行
+
+```bash
+node server.js
+```
+
+### VPS 部署（推荐）
+
+1. 购买云服务器（如阿里云ECS）
+2. 安装 Node.js、FFmpeg、Git
+3. 克隆项目并安装依赖
+4. 使用 systemd 创建系统服务，实现开机自启和自动重启
+
+```bash
+# 创建系统服务
+cat > /etc/systemd/system/bilibili-asr.service << 'EOF'
+[Unit]
+Description=Bilibili ASR Tool
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/home/bilibili-asr-tool
+ExecStart=/usr/bin/node server.js
+Restart=always
+RestartSec=5
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# 启动服务
+systemctl daemon-reload
+systemctl enable bilibili-asr
+systemctl start bilibili-asr
 ```
 
 ## 常见问题
 
 **Q: 提示"该视频没有字幕或ASR文本"怎么办？**
-A: 这说明该视频UP主没有上传字幕，且B站也没有生成ASR文本。可以尝试其他视频。
+A: 该视频UP主没有上传字幕，且B站没有生成ASR文本。需要设置B站登录Cookie后重试。
 
-**Q: 能否下载视频？**
-A: 本工具仅提取字幕文本，不提供视频下载功能。
+**Q: 截帧功能不可用？**
+A: 需要安装FFmpeg并确保在系统PATH中。
 
-**Q: 支持批量提取吗？**
-A: 目前仅支持单个视频提取，批量功能可以后续添加。
+**Q: 上传视频失败？**
+A: 检查阿里云OSS配置是否正确，确保 `.env` 文件中的AccessKey和Bucket信息无误。
 
 ## 许可证
 
 MIT License
-
-## 贡献
-
-欢迎提交Issue和Pull Request！
